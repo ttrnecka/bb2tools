@@ -1,32 +1,32 @@
 leagues:
   gman:
-    div1: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=741&form=no
-    div2: 
-    div3: 
-    div4: 
-    div5: 
-    div6a: 
-    div6b: 
-    div6c: 
-    div6d: 
-    div6e: 
+    div1: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=882&form=no
+    div2: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=883&form=no
+    div3: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=884&form=no
+    div4: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=885&form=no
+    div5: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=886&form=no
+    div6a: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=887&form=no
+    div6b: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=888&form=no
+    div6c: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=889&form=no
+    div6d: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=890&form=no
+    div6e: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=891&form=no
   bigo:
-    div1: 
-    div2: 
-    div3: 
-    div4a: 
-    div4b: 
+    div1: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=905&form=no
+    div2: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=906&form=no
+    div3: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=907&form=no
+    div4a: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=908&form=no
+    div4b: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=909&form=no
   rel:
-    div1: 
-    div2: 
-    div3: 
-    div4: 
-    div5: 
-    div6: 
-    div7: 
-    div8: 
-    div9a: 
-    div9b: 
-    div9c: 
-    div9d: 
-    div9e: 
+    div1: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=892&form=no
+    div2: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=893&form=no
+    div3: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=894&form=no
+    div4: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=895&form=no
+    div5: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=896&form=no
+    div6: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=897&form=no
+    div7: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=898&form=no
+    div8: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=899&form=no
+    div9a: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=900&form=no
+    div9b: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=901&form=no
+    div9c: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=902&form=no
+    div9d: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=903&form=no
+    div9e: http://www.bb2leaguemanager.com/Leaderboard/fixtures.php?division=904&form=no

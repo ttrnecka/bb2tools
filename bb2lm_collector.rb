@@ -1,8 +1,6 @@
-require 'yaml'
-require 'nokogiri'
-require 'open-uri'
 require './helpers.rb'
 
+@refresh_fixtures = true
 cfg=YAML.load_file(CFG_FILE)
 
 leagues = cfg["leagues"]
@@ -25,7 +23,7 @@ leagues.each_pair do |league,divisions|
       next 
     end
     
-    if !File.exists?(fixtures_file) || File.mtime(fixtures_file) - Time.now > 86400
+    if !File.exists?(fixtures_file) || File.mtime(fixtures_file) - Time.now > 86400 || @refresh_fixtures
       print "\t\tPulling #{div.upcase}"
       tmpfile = open(dlink,
         "User-Agent" => "Ruby/#{RUBY_VERSION}"

@@ -1,9 +1,9 @@
+require 'yaml'
 require 'nokogiri'
-#require 'open-uri'
+require 'open-uri'
 require 'fileutils'
-#require "http"
-require 'uri'
-require 'net/http'
+require 'csv'
+
 
 ROOT = File.expand_path(File.dirname(__FILE__))
 CFG_FILE = File.join(ROOT,"config","config.yml")
@@ -12,6 +12,10 @@ def create_dir(dirname)
   unless File.directory?(dirname)
     FileUtils.mkdir_p(dirname)
   end
+end
+
+def directory_exists?(directory)
+  File.directory?(directory)
 end
 
 
@@ -24,8 +28,16 @@ class BB2LMProcessor
     def get_players_from_match_report(report_file)
       html_doc = load_file(report_file)
       
-      #pull names
-      players = html_doc.xpath("//div[contains(@id,'Roster')]/table/tr/td[2]//text()").map {|p| p.text() }
+      tmp_split = report_file.split("/")
+      league = tmp_split[-5].to_s.upcase
+      division = tmp_split[-4].to_s.upcase
+      matchday = tmp_split[-2].to_s.upcase
+      
+      #pull teams
+      teams = html_doc.xpath("//div[contains(@id,'Roster')]/preceding-sibling::table/tr/td[@class='Teamtitle']//text()").map {|p| p.text() }
+      #pull Team A names
+      playersA = html_doc.xpath("//div[contains(@id,'RosterA')]/table/tr/td[2]//text()").map {|p| [league, division, matchday, teams[0], p.text()] }
+      playersB = html_doc.xpath("//div[contains(@id,'RosterB')]/table/tr/td[2]//text()").map {|p| [league, division, matchday, teams[1], p.text()] }
 
       #pull position   
       positions = html_doc.xpath("//div[contains(@id,'Roster')]/table/tr/td[3]//text()").map {|p| p.text() }
@@ -41,19 +53,29 @@ class BB2LMProcessor
         img = el.xpath(".//img/@title").first
         img.nil? ? "" : img.value
       end
-
+      
+      players = playersA.concat playersB
       # put all into the same array
-      players.zip(positions,player_skills,game_injuries)
+      players = players.zip(positions,player_skills,game_injuries)
+      
+      headers = [:league, :division, :matchday, :team, :name, :position, :skills, :game_injuries]
+      players.map! {|p| p.flatten}.map! do |p|
+        Hash[headers.collect.with_index { |v,i| [v, p[i]] }]
+      end
     end
     
     def get_injured_players_from_match_report(report_file,opts={})
-      injury_index = 3
       players = get_players_from_match_report(report_file)
-      injured = players.select {|p| !p[3].empty? }
+      injured = players.select {|p| !p[:game_injuries].empty? }
       if opts[:no_bh]
-        injured = injured.select {|p| !p[3].match(/BadlyHurt/) }
+        injured = injured.select {|p| !p[:game_injuries].match(/BadlyHurt/) }
       end
       injured
+    end
+    
+    def get_leveledup_players_from_match_report(report_file,opts={})
+      players = get_players_from_match_report(report_file)
+      levels = players.select {|p| p[:skills].match(/SkillUp/) }
     end
     
     def get_match_links_from_fixture(fixture_file,opts={})

@@ -1,4 +1,4 @@
 source 'https://rubygems.org' do
   gem 'nokogiri'
-  gem 'http'
+  gem 'json'
 end

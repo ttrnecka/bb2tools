@@ -4,7 +4,7 @@ cfg=YAML.load_file(CFG_FILE)
 
 leagues = cfg["leagues"]
 
-matchdays = [1]
+matchdays = [6]
 leveled_players = []
 leagues.each_pair do |league,divisions|
   if !directory_exists? File.join(ROOT,"cache",league)

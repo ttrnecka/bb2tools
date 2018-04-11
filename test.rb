@@ -13,6 +13,6 @@ file = File.open(File.join(ROOT,"cache","gman","div1","matches","Matchday 1","ma
 
 html_doc = Nokogiri::HTML(File.open(file))
 
-team_names = html_doc.xpath("//div[contains(@id,'Roster')]/preceding-sibling::table/tr/td[@class='Teamtitle']//text()")
+team_names = html_doc.xpath("//td[.//a[@class='teamlink']]//font")
 puts team_names
 

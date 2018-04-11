@@ -33,11 +33,21 @@ class BB2LMProcessor
       division = tmp_split[-4].to_s.upcase
       matchday = tmp_split[-2].to_s.upcase
       
+      #pull header
+      headers = html_doc.xpath("//td[.//a[@class='teamlink']]//font").map {|p| p.text.gsub(/TV [0-9]{4}\s*/,"") }
+      
       #pull teams
-      teams = html_doc.xpath("//div[contains(@id,'Roster')]/preceding-sibling::table/tr/td[@class='Teamtitle']//text()").map {|p| p.text() }
+      #teams = html_doc.xpath("//div[contains(@id,'Roster')]/preceding-sibling::table/tr/td[@class='Teamtitle']//text()").map {|p| p.text() }
+      
+      #pull races
+      #races = html_doc.xpath("//div[contains(@id,'Roster')]/preceding-sibling::table/tr/td[@class='Teamtitle']/following-sibling::font//text()").map {|p| p.text() }
+      
+      #pull coaches
+      #coaches = html_doc.xpath("//div[contains(@id,'Roster')]/preceding-sibling::table/tr/td[@class='Teamtitle']/following-sibling::font/following-sibling::font//text()").map {|p| p.text() }
+      
       #pull Team A names
-      playersA = html_doc.xpath("//div[contains(@id,'RosterA')]/table/tr/td[2]//text()").map {|p| [league, division, matchday, teams[0], p.text()] }
-      playersB = html_doc.xpath("//div[contains(@id,'RosterB')]/table/tr/td[2]//text()").map {|p| [league, division, matchday, teams[1], p.text()] }
+      playersA = html_doc.xpath("//div[contains(@id,'RosterA')]/table/tr/td[2]//text()").map {|p| [league, division, matchday, headers[0],headers[1],headers[2], p.text()] }
+      playersB = html_doc.xpath("//div[contains(@id,'RosterB')]/table/tr/td[2]//text()").map {|p| [league, division, matchday, headers[3],headers[4],headers[5], p.text()] }
 
       #pull position   
       positions = html_doc.xpath("//div[contains(@id,'Roster')]/table/tr/td[3]//text()").map {|p| p.text() }
@@ -48,17 +58,27 @@ class BB2LMProcessor
         imgs.empty? ? "" : imgs.map {|i| i.value }.join(",")
       end
   
+      #pull total SPPs
+      total_spp =  html_doc.xpath("//div[contains(@id,'Roster')]/table/tr/td[10]").map do |el| 
+        el.text
+      end
+      #pull all injuries
+      all_injuries =  html_doc.xpath("//div[contains(@id,'Roster')]/table/tr/td[12]").map do |el| 
+        imgs = el.xpath(".//img/@title")
+        imgs.empty? ? "" : imgs.map {|i| i.value }.join(",")
+      end
+      
       #pull game injuries
       game_injuries =  html_doc.xpath("//div[contains(@id,'Roster')]/table/tr/td[13]").map do |el| 
-        img = el.xpath(".//img/@title").first
-        img.nil? ? "" : img.value
+        imgs = el.xpath(".//img/@title")
+        imgs.empty? ? "" : imgs.map {|i| i.value }.join(",")
       end
       
       players = playersA.concat playersB
       # put all into the same array
-      players = players.zip(positions,player_skills,game_injuries)
+      players = players.zip(positions,player_skills,total_spp,all_injuries,game_injuries)
       
-      headers = [:league, :division, :matchday, :team, :name, :position, :skills, :game_injuries]
+      headers = [:league, :division, :matchday, :team, :race, :coach, :name, :position, :skills, :spp,:all_injuries, :game_injuries]
       players.map! {|p| p.flatten}.map! do |p|
         Hash[headers.collect.with_index { |v,i| [v, p[i]] }]
       end

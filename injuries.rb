@@ -1,10 +1,10 @@
-require './helpers.rb'
+require_relative './lib/helpers.rb'
 
 cfg=YAML.load_file(CFG_FILE)
 
 leagues = cfg["leagues"]
 
-matchdays = [6]
+matchdays = [7]
 injured_players = []
 leagues.each_pair do |league,divisions|
   if !directory_exists? File.join(ROOT,"cache",league)

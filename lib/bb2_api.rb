@@ -3,7 +3,7 @@ require 'json'
 
 class BB2API
   URL = 'http://web.cyanide-studio.com/ws/bb2'
-  VALID_OPTS = ["league","competition","status","round","platform","limit","exact"]
+  VALID_OPTS = ["league","competition","status","round","platform","limit","exact","v"]
   def initialize(opts={})
     if opts[:api_key].nil?
       raise "Error: API KEY is required!!!"
@@ -11,14 +11,14 @@ class BB2API
       @api_key=opts[:api_key]
     end
     #defaults
-    @limit=1000
+    @limit=10000
     @exact=1
     
     set_variables(opts)
   end
   
   def get_contests(opts={})
-    base_url = "#{URL}\/contests\/?key=#{@api_key}"
+    base_url = "#{URL}\/contests\/?key=#{@api_key}&v=1"
     set_variables(opts)
     param_url = create_url_parameters(opts)
     

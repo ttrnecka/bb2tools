@@ -1,4 +1,4 @@
-require './helpers.rb'
+require_relative './lib/helpers.rb'
 
 @refresh_fixtures = true
 cfg=YAML.load_file(CFG_FILE)

@@ -19,7 +19,6 @@ def directory_exists?(directory)
   File.directory?(directory)
 end
 
-
 class BB2LMProcessor
   class << self
     def load_file(file)
@@ -114,44 +113,139 @@ class BB2LMProcessor
   end
 end
 
-class BB2APIProcessor
-  UNTRACKED_PARAMS_LIST = [
-    "coach",
-    "teamname",
-    "race",
-    "matches"
-  ]
-  TRACKED_PARAMS_LIST = [
-    "score",
-    "possessionball",
-    "occupationown",
-    "occupationtheir",
-    "inflictedpasses",
-    "inflictedcatches",
-    "inflictedinterceptions",
-    "inflictedtouchdowns",
-    "inflictedcasualties",
-    "inflictedtackles",
-    "inflictedko",
-    "inflictedinjuries",
-    "inflicteddead",
-    "inflictedmetersrunning",
-    "inflictedmeterspassing",
-    "inflictedpushouts",
-    "sustainedtouchdowns",
-    "sustainedexpulsions",
-    "sustainedcasualties",
-    "sustainedko",
-    "sustainedinjuries",
-    "sustaineddead",
-    "win",
-    "draw",
-    "loss",
-    "points"
-  ]
+module BBDirs
+  private
+  def set_league_dir(opts)
+    dir_array = opts[:dirs] || @opts[:dirs]
+    raise 'No \'dirs\' option specified' if dir_array.nil?
+    #set directories if they do not exist
+    create_dir @dirname = File.join(ROOT,*dir_array)
+    #puts @dirname
+    create_dir @matches_dirname = File.join(@dirname,"matches")
+    @matches_file = File.join(@dirname,"matches.json")
+  end
+  
+  def get_matches_dir(folder)
+    File.join(ROOT,folder,"matches")
+  end
+end
+
+class BB2DataProcessor
+  include BBDirs
   
   def initialize(opts={})
     @opts = opts
+    #set_league_dir opts
+    raise "No folders options was given" if !@opts[:folders] || @opts[:folders].empty?
+  end
+  
+  def export_player_statistics(file)
+    players = {}
+    @opts[:folders].each do |folder|
+      matches_files = Dir.glob File.join(get_matches_dir(folder),"*")
+      matches_files.each do |match_file|
+        match = BB2Match.new(match_file)
+        next if @opts[:ignore_leagues] && @opts[:ignore_leagues].include?(match.league)
+        match.teams.each_with_index do |team,i|
+          next if @opts[:ignore_teams] && @opts[:ignore_teams].include?(team['teamname'])
+          team['roster'].each do |player|
+            id = (player['id'].nil? ? player['name'] : player['id']).to_s.to_sym
+            players[id]||={}
+            stats = player['stats']
+            # track last match data
+            players[id]['last_update'] = match.played_at
+            BB2Match::PLAYER_PARAM_LIST_STATIC.each do |item|
+              next if match.played_at < players[id]['last_update'] 
+              players[id][item] = player[item].kind_of?(Array) ? players[id][item] = player[item].join(",") : player[item].nil? ? "" : player[item]
+            end
+            BB2Match::PLAYER_PARAM_LIST_DYNAMIC.each do |item|
+              players[id][item] = players[id.to_sym][item].nil? ? 0+stats[item] : players[id.to_sym][item]+stats[item] 
+            end
+          end
+        end
+      end
+    end
+    CSV.open(file, "w") do |csv|
+      full_keys = BB2Match.player_params + ["last_update"]
+      csv << full_keys
+      players.each do |key, player|
+        csv << full_keys.map {|k| player[k]}
+      end
+    end
+  end
+  
+  def export_team_statistics(file)
+    teams = {}
+    @opts[:folders].each do |folder|
+      matches_files = Dir.glob File.join(get_matches_dir(folder),"*")
+      matches_files.each do |match_file|
+        match = BB2Match.new(match_file)
+        next if @opts[:ignore_leagues] && @opts[:ignore_leagues].include?(match.league)
+        match.teams.each_with_index do |team,i|
+          next if @opts[:ignore_teams] && @opts[:ignore_teams].include?(team['teamname'])
+          id = team['idteamlisting'].to_s.to_sym
+          teams[id]||={}
+          teams[id]['last_update'] = teams[id]['last_update'] && teams[id]['last_update']>match.played_at ? teams[id]['last_update'] : match.played_at
+          BB2Match::TEAM_PARAM_LIST_STATIC.each do |item| 
+              next if match.played_at < teams[id]['last_update'] 
+              teams[id][item] = team[item]
+          end
+          BB2Match::TEAM_PARAM_LIST_DYNAMIC.each do |item|
+            teams[id][item] = teams[id.to_sym][item].nil? ? 0+team[item] : teams[id.to_sym][item]+team[item] 
+          end
+        end
+      end
+    end
+    
+    CSV.open(file, "w") do |csv|
+      full_keys = BB2Match.team_params + ["last_update"]
+      csv << full_keys
+      teams.each do |key, team|
+        csv << full_keys.map {|k| team[k]}
+      end
+    end
+  end
+  
+  def export_game_statistics(file)
+    games = {}
+    @opts[:folders].each do |folder|
+      matches_files = Dir.glob File.join(get_matches_dir(folder),"*")
+      matches_files.each do |match_file|
+        match = BB2Match.new(match_file)
+        next if @opts[:ignore_leagues] && @opts[:ignore_leagues].include?(match.league)
+        next if @opts[:ignore_teams] && @opts[:ignore_teams].include?(match.team_home['teamname'])
+        next if @opts[:ignore_teams] && @opts[:ignore_teams].include?(match.team_visitor['teamname'])
+        id = match.data['uuid']
+        games[id]||={}
+        games[id][:league] = match.data['match']['leaguename']
+        games[id][:competition] = match.data['match']['competitionname']
+        games[id][:played_at] = match.played_at
+        # home
+        games[id][:home_coach] = match.coach_home['coachname']
+        games[id][:home_team] = match.team_home['teamname']
+        games[id][:home_score] = match.team_home['score']
+        # home
+        games[id][:visitor_coach] = match.coach_visitor['coachname']
+        games[id][:visitor_team] = match.team_visitor['teamname']
+        games[id][:visitor_score] = match.team_visitor['score']
+      end
+    end
+    
+    CSV.open(file, "w") do |csv|
+      full_keys = [:league,:competition,:played_at, :home_coach,:home_team,:home_score,:visitor_score,:visitor_team,:visitor_coach]
+      csv << full_keys
+      games.each do |key, team|
+        csv << full_keys.map {|k| team[k]}
+      end
+    end
+  end
+end
+
+class BB2APICollector
+  include BBDirs
+  def initialize(opts={})
+    @opts = opts
+    set_league_dir opts
     @agent = BB2API.new(@opts)
   end
   
@@ -191,88 +285,190 @@ class BB2APIProcessor
       puts "Contest data stored"
     end
   end
+end
+
+class BB2Match
+  attr_reader :data
   
-  def export_team_statistics(file)
-    matches_files = Dir.glob File.join(@matches_dirname,"*")
-    teams = {}
-    top_level_data = JSON.parse(File.read(@matches_file))
-    top_level_data["upcoming_matches"].each do |match|
-      match['opponents'].each do |oppo|
-        id = oppo['team']['id'].to_s.to_sym
-        teams[id]||={}
-        teams[id]['race'] = oppo['team']['race']
-      end
-    end
-    matches_files.each do |match_file|
-      match_data = JSON.parse(File.read(match_file))
-      if match_data['match']['teams'][0]['score'] > match_data['match']['teams'][1]['score']
-        match_data['match']['teams'][0]['win']=1
-        match_data['match']['teams'][0]['draw']=0
-        match_data['match']['teams'][0]['loss']=0
-        match_data['match']['teams'][0]['points']=3
-        match_data['match']['teams'][1]['win']=0
-        match_data['match']['teams'][1]['draw']=0
-        match_data['match']['teams'][1]['loss']=1
-        match_data['match']['teams'][1]['points']=0
-      elsif match_data['match']['teams'][0]['score'] == match_data['match']['teams'][1]['score']
-        match_data['match']['teams'][0]['win']=0
-        match_data['match']['teams'][0]['draw']=1
-        match_data['match']['teams'][0]['loss']=0
-        match_data['match']['teams'][0]['points']=1
-        match_data['match']['teams'][1]['win']=0
-        match_data['match']['teams'][1]['draw']=1
-        match_data['match']['teams'][1]['loss']=0
-        match_data['match']['teams'][1]['points']=1
-      else
-        match_data['match']['teams'][0]['win']=0
-        match_data['match']['teams'][0]['draw']=0
-        match_data['match']['teams'][0]['loss']=1
-        match_data['match']['teams'][0]['points']=0
-        match_data['match']['teams'][1]['win']=1
-        match_data['match']['teams'][1]['draw']=0
-        match_data['match']['teams'][1]['loss']=0
-        match_data['match']['teams'][1]['points']=3
-      end 
+  TEAM_PARAM_LIST_STATIC = [
+    "league","competition","coach", "teamname", "race"
+  ]
+  TEAM_PARAM_LIST_DYNAMIC = [
+    "matches", "score", "possessionball", "occupationown", "occupationtheir", "inflictedpasses", "inflictedcatches", "inflictedinterceptions", "inflictedtouchdowns",
+    "inflictedcasualties", "inflictedtackles", "inflictedko", "inflictedinjuries", "inflicteddead", "inflictedmetersrunning", "inflictedmeterspassing", "inflictedpushouts",
+    "sustainedtouchdowns", "sustainedexpulsions", "sustainedcasualties", "sustainedko", "sustainedinjuries", "sustaineddead", "win", "draw", "loss", "points","xp_gain","levelups"
+  ]
+  
+  PLAYER_PARAM_LIST_STATIC = [
+    "league","competition","coach", "teamname", "race", "number", "type", "name", "skills", "casualties_state", "casualties_sustained"
+  ]
+  
+  PLAYER_PARAM_LIST_DYNAMIC = [
+    "matches","inflictedcasualties", "inflictedstuns", "inflictedpasses", "inflictedmeterspassing", "inflictedtackles", "inflictedko", "inflicteddead", "inflictedinterceptions", 
+    "inflictedpushouts", "inflictedcatches", "inflictedinjuries", "inflictedmetersrunning", "inflictedtouchdowns", "sustainedinterceptions", "sustainedtackles", 
+    "sustainedinjuries", "sustaineddead", "sustainedko", "sustainedcasualties", "sustainedstuns","xp","xp_gain","levelups"
+  ]
+  
+  RACES = [
+    "0","Human","Dwarf","Skaven","Orc","Lizardman","Goblin","WoodElf","Chaos","DarkElf","Undead","Halfling","Norse","Amazon","ProElf","HighElf","Khemri","Necromantic",
+    "Nurgle","Ogre","Vampire","ChaosDwarf","Underworld","23","Bretonnia","Kislev"
+  ]
+  
+  def self.team_params
+    TEAM_PARAM_LIST_STATIC + TEAM_PARAM_LIST_DYNAMIC
+  end
+  
+  def self.player_params
+    PLAYER_PARAM_LIST_STATIC + PLAYER_PARAM_LIST_DYNAMIC
+  end
+  
+  def initialize(file)
+    @data = load_file file
+    process_extra
+  end
+  
+  def team_home
+    teams[0]
+  end
+  
+  def team_visitor
+    teams[1]
+  end
+  
+  def teams
+    @data['match']['teams']
+  end
+  
+  def coach_home
+    coaches[0]
+  end
+  
+  def coach_visitor
+    coaches[1]
+  end
+  
+  def coaches
+    @data['match']['coaches']
+  end
+  
+  def players_home
+    team_home['roster']
+  end
+  
+  def players_visitor
+    team_visitor['roster']
+  end
+  
+  def played_at
+    @data['match']['started']
+  end
+  
+  def league
+    @data['match']['leaguename']
+  end
+ 
+  def competition
+    @data['match']['competitionname']
+  end 
+  
+  private
+  def load_file(file)
+    raise "Match file #{file} does not exists" if !File.exist? file
+    JSON.parse(File.read(file))
+  end
+  
+  def process_extra
+    process_players
+    process_team
+  end 
+  
+  def process_team
+    if team_home['score'] > team_visitor['score']
+      tmp_team_home_data = { 'win' => 1, 'draw' => 0, 'loss' => 0, 'points' => 3 }
+      tmp_team_visitor_data = { 'win' => 0, 'draw' => 0, 'loss' => 1, 'points' => 0 }
+    elsif team_home['score'] == team_visitor['score']
+      tmp_team_home_data = { 'win' => 0, 'draw' => 1, 'loss' => 0, 'points' => 1 }
+      tmp_team_visitor_data = { 'win' => 0, 'draw' => 1, 'loss' => 0, 'points' => 1 }
+    else
+      tmp_team_home_data = { 'win' => 0, 'draw' => 0, 'loss' => 1, 'points' => 0 }
+      tmp_team_visitor_data = { 'win' => 1, 'draw' => 0, 'loss' => 0, 'points' => 3 }
+    end 
       
-      match_data['match']['teams'][0]['sustainedtouchdowns']=match_data['match']['teams'][1]['inflictedtouchdowns']
-      match_data['match']['teams'][1]['sustainedtouchdowns']=match_data['match']['teams'][0]['inflictedtouchdowns']
+    tmp_team_home_data['sustainedtouchdowns']=team_visitor['inflictedtouchdowns']
+    tmp_team_visitor_data['sustainedtouchdowns']=team_home['inflictedtouchdowns']
+    tmp_team_home_data['matches']=1
+    tmp_team_visitor_data['matches']=1
+    tmp_team_home_data['race']=RACES[team_home['idraces']]
+    tmp_team_visitor_data['race']=RACES[team_visitor['idraces']]
+    
+    #workaround for inflicted pushouts bug
+    teams.each_with_index do |team,i|
+      #workaround for inflicted pushouts bug
+      team["inflictedpushouts"] = team['roster'].map {|item| item['stats']['inflictedpushouts']}.reduce(:+)
+      # league and division
+      team["league"] = @data['match']['leaguename']
+      team["competition"] = @data['match']['competitionname']
+      team['coach'] = coaches[i]['coachname']
+      #levelups
+      team["levelups"] = team['roster'].map {|item| item['stats']['levelups']}.reduce(:+)
+      #xp_gain
+      team["xp_gain"] = team['roster'].map {|item| item['stats']['xp_gain']}.reduce(:+)
       
-      match_data['match']['teams'].each_with_index do |team,i|
-        id = team['idteamlisting'].to_s.to_sym
-        teams[id]||={}
-        teams[id]['coach'] ||= match_data['coaches'][i]['name']
-        teams[id]['teamname'] ||= team['teamname']
-        teams[id]['matches'] ||= 0
-        teams[id]['matches'] += 1 
-        TRACKED_PARAMS_LIST.each do |item|
-          teams[id][item] = teams[id.to_sym][item].nil? ? 0+team[item] : teams[id.to_sym][item]+team[item] 
-        end
-        
-        #workaround for inflicted pushouts
-        if TRACKED_PARAMS_LIST.include? "inflictedpushouts"
-          pushouts = team['roster'].map {|item| item['stats']['inflictedpushouts']}.reduce(:+)
-          teams[id]["inflictedpushouts"] = teams[id.to_sym]['inflictedpushouts'].nil? ? 0+pushouts : teams[id.to_sym]['inflictedpushouts']+pushouts 
-        end
-      end
     end
-    CSV.open(file, "w") do |csv|
-      full_keys = UNTRACKED_PARAMS_LIST + TRACKED_PARAMS_LIST
-      csv << full_keys
-      teams.each do |key, team|
-        csv << full_keys.map {|k| team[k]}
-      end
+   
+    team_home.merge! tmp_team_home_data
+    team_visitor.merge! tmp_team_visitor_data
+  end
+  
+  def process_players
+    players_home.each do |player|
+      player['coach'] = coach_home['coachname']
+      player['teamname'] = team_home['teamname']
+      player['stats']['matches'] = 1
+      player['stats']['levelups'] = levels_up(player)
+      player['stats']['xp_gain'] = player['xp_gain']
+      player['stats']['xp'] = player['xp']
+      player['race']=RACES[team_home['idraces']]
+      player["league"] = @data['match']['leaguename']
+      player["competition"] = @data['match']['competitionname']
+    end
+    
+    players_visitor.each do |player|
+      player['coach'] = coach_visitor['coachname']
+      player['teamname'] = team_visitor['teamname']
+      player['stats']['matches'] = 1
+      player['stats']['levelups'] = levels_up(player)
+      player['stats']['xp_gain'] = player['xp_gain']
+      player['stats']['xp'] = player['xp']
+      player['race']=RACES[team_visitor['idraces']]
+      player["league"] = @data['match']['leaguename']
+      player["competition"] = @data['match']['competitionname']
     end
   end
   
-  private
+  def levels_up (player)
+    new_level = lookup_level(player['xp'].to_i+player['xp_gain'].to_i)
+    levelups = new_level - player['level'].to_i
+    #fix for level 2 journeyman
+    levelups = 0 if levelups < 0 
+    return levelups
+  end
   
-  def set_league_dir(opts)
-    dir_array = opts[:dirs] || @opts[:dirs]
-    raise 'No \'dirs\' option specified' if dir_array.nil?
-    #set directories if they do not exist
-    create_dir @dirname = File.join(ROOT,*dir_array)
-    #puts @dirname
-    create_dir @matches_dirname = File.join(@dirname,"matches")
-    @matches_file = File.join(@dirname,"matches.json")
+  def lookup_level(spp)
+    case
+    when spp < 6
+      return 1
+    when spp < 16
+      return 2
+    when spp < 31
+      return 3
+    when spp < 51
+      return 4
+    when spp < 76
+      return 5
+    when spp < 176
+      return 6
+    else return 7
+    end
   end
 end

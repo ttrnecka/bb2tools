@@ -4,10 +4,10 @@ cfg=YAML.load_file(CFG_FILE)
 
 
 opts = {
-  league: "REBBL",
-  competition: "Season 9",
-  ignore_leagues: ["ReBBL Playoffs"],
-  dirs: ["data","REBBL","season9"],
+  league: "ReBBRL Minors Season 6",
+  competition: "",
+  ignore_leagues: [""],
+  dirs: ["data","minors","season6"],
   exact: 0,
   reload_contest: true,
   api_key: cfg["api_key"],

@@ -154,6 +154,8 @@ class BB2DataProcessor
             stats = player['stats']
             # track last match data
             players[id]['last_update'] = match.played_at
+            players[id]['died'] ||=0
+            players[id]['died'] += stats['sustaineddead']
             BB2Match::PLAYER_PARAM_LIST_STATIC.each do |item|
               next if match.played_at < players[id]['last_update'] 
               players[id][item] = player[item].kind_of?(Array) ? players[id][item] = player[item].join(",") : player[item].nil? ? "" : player[item]
@@ -166,7 +168,7 @@ class BB2DataProcessor
       end
     end
     CSV.open(file, "w") do |csv|
-      full_keys = BB2Match.player_params + ["last_update"]
+      full_keys = BB2Match.player_params + ["last_update","died"]
       csv << full_keys
       players.each do |key, player|
         csv << full_keys.map {|k| player[k]}
@@ -186,7 +188,14 @@ class BB2DataProcessor
           id = team['idteamlisting'].to_s.to_sym
           teams[id]||={}
           teams[id]['last_update'] = teams[id]['last_update'] && teams[id]['last_update']>match.played_at ? teams[id]['last_update'] : match.played_at
+          
           BB2Match::TEAM_PARAM_LIST_STATIC.each do |item| 
+              # rampup workaround
+              if item=="league" && teams[id][item] && teams[id][item].match(/rampup/)
+                next
+              else
+                teams[id][item] = team[item]
+              end
               next if match.played_at < teams[id]['last_update'] 
               teams[id][item] = team[item]
           end
@@ -206,6 +215,29 @@ class BB2DataProcessor
     end
   end
   
+  def export_player_tts(file)
+    players = []
+    @opts[:folders].each do |folder|
+      matches_files = Dir.glob File.join(get_matches_dir(folder),"*")
+      matches_files.each do |match_file|
+        match = BB2Match.new(match_file)
+        next if @opts[:ignore_leagues] && @opts[:ignore_leagues].include?(match.league)
+        match.teams.each_with_index do |team,i|
+          next if @opts[:ignore_teams] && @opts[:ignore_teams].include?(team['teamname'])
+          team['roster'].each do |player|
+            players << BBPlayer.new(player,match)
+          end
+        end
+      end
+    end
+    CSV.open(file, "w") do |csv|
+      csv << BBPlayer::CSV_HEADER
+      players.each do |player|
+        csv << player.to_csv
+      end
+    end
+  end
+  
   def export_game_statistics(file)
     games = {}
     @opts[:folders].each do |folder|
@@ -217,7 +249,7 @@ class BB2DataProcessor
         next if @opts[:ignore_teams] && @opts[:ignore_teams].include?(match.team_visitor['teamname'])
         id = match.data['uuid']
         games[id]||={}
-        games[id][:league] = match.data['match']['leaguename']
+        games[id][:league] = @opts[:rampup_teams] && (@opts[:rampup_teams].include?(match.team_home['teamname']) || @opts[:rampup_teams].include?(match.team_visitor['teamname'])) ? "RAMPUP" : match.data['match']['leaguename']
         games[id][:competition] = match.data['match']['competitionname']
         games[id][:played_at] = match.played_at
         # home
@@ -287,6 +319,176 @@ class BB2APICollector
   end
 end
 
+class BBPlayer
+  STATS = ["inflictedcasualties","inflictedstuns", "inflictedpasses", "inflictedmeterspassing", "inflictedtackles",
+           "inflictedko", "inflicteddead", "inflictedinterceptions", "inflictedpushouts", "inflictedcatches",
+           "inflictedinjuries", "inflictedmetersrunning", "inflictedtouchdowns", "sustainedinterceptions",
+           "sustainedtackles", "sustainedinjuries", "sustaineddead", "sustainedko", "sustainedcasualties", "sustainedstuns" ]
+
+  ATTR = ["ma","st","ag","av"]
+  CSV_HEADER = ["league","competition","played_at","round","teamname","race","number","name","type","skills"] + ATTR + ["tts"] + STATS
+  
+  attr_reader :data, :match
+  
+  def self._attributes(args)
+    args.each do |arg|
+      define_method arg do
+        @data[arg]
+      end
+    end
+  end
+  
+  def self._stats(args)
+    args.each do |arg|
+      define_method arg do
+        stats[arg]
+      end
+    end
+  end
+  
+  def self.main_attributes(args)
+    args.each do |arg|
+      define_method arg do
+        attributes[arg]
+      end
+    end
+  end
+  
+  _attributes ["league","competition","number","name","type","teamname","race","skills","stats","attributes"]
+  _stats STATS
+  main_attributes ATTR
+    
+  def initialize(player,match)
+    @data = player
+    @match = match
+  end
+  
+  def to_csv
+    CSV_HEADER.map do |key|
+      self.send(key.to_sym)
+    end
+  end
+  
+  def played_at
+    @match.played_at
+  end
+  
+  def round
+    @match.round
+  end
+  
+  def tts
+    (
+    td_points +
+    pass_points +
+    catch_points +
+    block_points +
+    ab_points +
+    cas_points +
+    ko_points +
+    kill_points +
+    int_points
+    ).round
+  end
+  
+  def has_skill?(skill)
+    skills.include? skill
+  end
+  private
+  def td_points
+    base = 10
+    base_ma = 7
+    player_ma = ma==0 ? 1 : ma
+    player_ma += has_skill?("Sprint") ? 0.5 : 0
+    inflictedtouchdowns * base * base_ma/player_ma 
+  end
+  
+  def pass_points
+    base = 17
+    base_ag = 1
+    base_meters = 20
+    ag_bonus = 0
+    ag_bonus += has_skill?("Accurate") ? 1 : 0
+    ag_bonus += has_skill?("StrongArm") ? 0.8 : 0
+    ag_bonus += has_skill?("Pass") ? 1.2 : 0
+    player_ag = ag_bonus+ag==0 ? 1 : ag_bonus+ag
+    (inflictedpasses * base * base_ag/(player_ag+0.5)) + inflictedmeterspassing.to_f/base_meters
+  end
+  
+  def catch_points
+    base = 17
+    base_ag = 1
+    ag_bonus = 0
+    ag_bonus += has_skill?("DivingCatch") ? 0.8 : 0
+    ag_bonus += has_skill?("Catch") ? 1.2 : 0
+    player_ag = ag_bonus+ag==0 ? 1 : ag_bonus+ag
+    (inflictedcatches * base * base_ag/(player_ag+0.5))
+  end
+  
+  def block_points
+    base = 3.5
+    str_bonus = 0
+    str_bonus += has_skill?("Frenzy") ? 1 : 0
+    player_str = str_bonus+st==0 ? 1 : str_bonus+st
+    (inflictedtackles * base /(player_str+0.5))
+  end
+  
+  def ab_points
+    base = 1
+    br_bonus = 0.5
+    br_bonus += has_skill?("Claw") ? 0.2 : 0
+    br_bonus += has_skill?("MightyBlow") ? 0.1 : 0
+    br_bonus += has_skill?("PilingOn") ? 0.4 : 0
+    br_bonus += has_skill?("DirtyPlayer") ? 1 : 0
+    block_bonus = has_skill?("Block") ? 1 : 1.5
+    (inflictedinjuries * base * block_bonus /(br_bonus))
+  end
+  
+  def cas_points
+    base = 3
+    cas_bonus = 0.5
+    cas_bonus += has_skill?("Claw") ? 0.2 : 0
+    cas_bonus += has_skill?("MightyBlow") ? 0.1 : 0
+    cas_bonus += has_skill?("PilingOn") ? 0.4 : 0
+    cas_bonus += has_skill?("DirtyPlayer") ? 0.2 : 0
+    block_bonus = has_skill?("Block") ? 1 : 1.5
+    (inflictedcasualties * base * block_bonus /(cas_bonus))
+  end
+  
+  def ko_points
+    base = 2
+    ko_bonus = 0.5
+    ko_bonus += has_skill?("Claw") ? 0.2 : 0
+    ko_bonus += has_skill?("MightyBlow") ? 0.1 : 0
+    ko_bonus += has_skill?("PilingOn") ? 0.4 : 0
+    ko_bonus += has_skill?("DirtyPlayer") ? 0.2 : 0
+    block_bonus = has_skill?("Block") ? 1 : 1.5
+    (inflictedko * base * block_bonus /(ko_bonus))
+  end
+  
+  def kill_points
+    base = 3
+    kill_bonus = 0.5
+    kill_bonus += has_skill?("Claw") ? 0.2 : 0
+    kill_bonus += has_skill?("MightyBlow") ? 0.1 : 0
+    kill_bonus += has_skill?("PilingOn") ? 0.4 : 0
+    kill_bonus += has_skill?("DirtyPlayer") ? 0.2 : 0
+    block_bonus = has_skill?("Block") ? 1 : 1.5
+    (inflicteddead * base * block_bonus /(kill_bonus))
+  end
+  
+  def int_points
+    base = 24
+    ag_bonus = 0
+    ag_bonus += has_skill?("PassBlock") ? 1 : 0
+    ag_bonus += has_skill?("NervesOfSteel") ? 1 : 0
+    ag_bonus += has_skill?("VeryLongLegs") ? 1 : 0
+    player_ag = ag>=3 ? ag+ag_bonus : ag_bonus+3
+    
+    (inflictedinterceptions * base /(player_ag))
+  end
+end
+
 class BB2Match
   attr_reader :data
   
@@ -300,13 +502,13 @@ class BB2Match
   ]
   
   PLAYER_PARAM_LIST_STATIC = [
-    "league","competition","coach", "teamname", "race", "number", "type", "name", "skills", "casualties_state", "casualties_sustained"
+    "league","competition","coach", "teamname", "race", "number", "type", "name", "skills","xp", "casualties_state", "casualties_sustained"
   ]
   
   PLAYER_PARAM_LIST_DYNAMIC = [
     "matches","inflictedcasualties", "inflictedstuns", "inflictedpasses", "inflictedmeterspassing", "inflictedtackles", "inflictedko", "inflicteddead", "inflictedinterceptions", 
     "inflictedpushouts", "inflictedcatches", "inflictedinjuries", "inflictedmetersrunning", "inflictedtouchdowns", "sustainedinterceptions", "sustainedtackles", 
-    "sustainedinjuries", "sustaineddead", "sustainedko", "sustainedcasualties", "sustainedstuns","xp","xp_gain","levelups"
+    "sustainedinjuries", "sustaineddead", "sustainedko", "sustainedcasualties", "sustainedstuns","xp_gain","levelups"
   ]
   
   RACES = [
@@ -352,15 +554,19 @@ class BB2Match
   end
   
   def players_home
-    team_home['roster']
+    team_home['roster'].nil? ? [] : team_home['roster'] 
   end
   
   def players_visitor
-    team_visitor['roster']
+    team_visitor['roster'].nil? ? [] : team_visitor['roster'] 
   end
   
   def played_at
     @data['match']['started']
+  end
+  
+  def round
+    @data['match']['round']
   end
   
   def league
@@ -403,6 +609,7 @@ class BB2Match
     
     #workaround for inflicted pushouts bug
     teams.each_with_index do |team,i|
+      team['roster'] = [] if team['roster'].nil? 
       #workaround for inflicted pushouts bug
       team["inflictedpushouts"] = team['roster'].map {|item| item['stats']['inflictedpushouts']}.reduce(:+)
       # league and division

@@ -40,7 +40,7 @@ if __name__ == "__main__":
             pyautogui.moveTo(left_arrow[0]+10,left_arrow[1]+10)
             pyautogui.mouseDown(); pyautogui.mouseUp()
             time.sleep(0.25)
-            pos = imagesearch("tt_test.png")
+            pos = imagesearch("OI1.png")
             print(pos)
 
         pyautogui.moveTo(pos[0]+10,pos[1]+10)

@@ -34,13 +34,13 @@ if __name__ == "__main__":
 
         time.sleep(0.2)
         # find OI1
-        pos = imagesearch("OI1.png")
+        pos = imagesearch("OI1.png",0.99)
         while pos[0]==-1:
             left_arrow = imagesearch("left.png")
             pyautogui.moveTo(left_arrow[0]+10,left_arrow[1]+10)
             pyautogui.mouseDown(); pyautogui.mouseUp()
             time.sleep(0.25)
-            pos = imagesearch("OI1.png")
+            pos = imagesearch("OI1.png",0.99)
             print(pos)
 
         pyautogui.moveTo(pos[0]+10,pos[1]+10)

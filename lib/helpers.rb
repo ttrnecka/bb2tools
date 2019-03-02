@@ -4,6 +4,7 @@ require 'open-uri'
 require 'fileutils'
 require 'csv'
 require_relative './bb2_api.rb'
+require_relative './rebbl_net_api.rb'
 
 
 ROOT = File.expand_path("..",File.dirname(__FILE__))

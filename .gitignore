@@ -2,3 +2,7 @@ cache/
 *.csv
 *.lock
 *.json
+.Rproj.user
+.RData
+.Rhistory
+*.code-workspace

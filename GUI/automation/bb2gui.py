@@ -8,7 +8,7 @@ TEMPLATE_PATH = "data/image_templates"
 def windowEnumerationHandler(hwnd, top_windows):
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
 
-def findAndActiveWindow(name):
+def findAndActivateWindow(name):
     top_windows = []
     found = False
     

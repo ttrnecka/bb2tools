@@ -5,11 +5,11 @@ if __name__ == "__main__":
     
     if bb2gui.findAndActivateWindow("blood bowl 2"):
         #leagues
-        #oi_leagues = ["OI1.png","OI2.png","OI3.png","OI4.png","OI5.png","OI6.png"]
-        oi_leagues = ["tt_test.png"]
+        oi_leagues = ["OI1.png","OI2.png","OI3.png","OI4.png","OI5.png","OI6.png"]
+        #oi_leagues = ["tt_test.png"]
+        bb2gui.clickTeamManagement()
+        bb2gui.clickMyLeagues()
         for league in oi_leagues:
-            bb2gui.clickTeamManagement()
-            bb2gui.clickMyLeagues()
             bb2gui.selectLeague(league)
 
             #find comp to start
@@ -23,6 +23,6 @@ if __name__ == "__main__":
                 else:
                     print("not waiting for start")
             bb2gui.clickBack()
-            bb2gui.clickBack()
+        bb2gui.clickBack()
     else:
         print("Blood Bowl 2 not started")

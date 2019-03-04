@@ -1,4 +1,4 @@
----
+﻿---
 - team name: Blutverein Silurien
   race: Lizardman
   timezone: America/Los_Angeles
@@ -2661,14 +2661,3 @@
   last match time: '2019-03-03 18:32:24'
   last division: REBBL Eurogamer Open Wildcard Playoffs
   matches count: 6
-- team name: I h├Ątt a Sauspiel
-  race: Kislev
-  timezone: Europe/Berlin
-  reddit name: Hindus_Maximus
-  discord: Hindus
-  blood bowl 2 name: Hindi
-  steam name: Hindi
-  reqion: GMAN
-  last match time: '2019-03-01 20:31:54'
-  last division: ReBBL Playoffs REBBL Playoffs X
-  matches count: 19

@@ -1,4 +1,4 @@
-from imagesearch import imagesearch, imagesearch_loop, pyautogui, imagesearcharea
+from imagesearch import imagesearch, imagesearch_loop, pyautogui, imagesearcharea, region_grabber
 import win32gui
 import time
 import os
@@ -48,12 +48,25 @@ def selectCompetition(position):
     time.sleep(2)
 
 def nextCompetition():
+    i = 0
+    #move cursor to the corner so it does not mess the center pics being taken
+    pyautogui.moveTo(1,1)
+    # wait till league settings button is visible
+    imagesearch_loop(os.path.join(TEMPLATE_PATH, "league_settings.png"),0.5)
+    # pick start image, it will be used to tell that we went full circle
+    starting_image = region_grabber(region=(860,440,1050,540))
+    starting_image.save(os.path.join(TEMPLATE_PATH, "tmp_league.png"))
+
     while True:
-        create_comp = imagesearch(os.path.join(TEMPLATE_PATH, "create_competition.png"))
-        if create_comp[0]!=-1:
-            break
         image = pyautogui.screenshot()
+        # ignore first competition as it is the starting one
+        if i>1:
+            comp = imagesearcharea(os.path.join(TEMPLATE_PATH, "tmp_league.png"), 0,0,0,0,0.95, image)
+            if comp[0]!=-1:
+                break
+        
         yield image
+        i+=1
         right_arrow = imagesearch(os.path.join(TEMPLATE_PATH, "right.png"))
         moveToAndClick(right_arrow[0]+10,right_arrow[1]+10)
         time.sleep(0.3)

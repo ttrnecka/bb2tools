@@ -52,6 +52,7 @@ add_ins <- tibble::tribble(
   "Minors","Tarot Alliance", 2390017, "ChaosDwarf", 14, 9, 4,3,2,2, "Minors", 7,
   "Season 9 - Division 1", "Eat-Eat Man-Things!!", 938766, "Skaven", 11, 13,3,4,2,1,"REL", 1,
   "Minors", "Pseudointellectuals", 2223524, "Necromantic", 14, 9,6,1,2,3,"BigO", 7,
+  "Season 9 - Division 1", "Tribu Urbana", 1540843, "ProElf", 7, 13,2,10,1,-10,"REL", 1,
 )
 
 #Combine everything together
@@ -97,13 +98,8 @@ r1_teams <- r1_teams %>%
 
 #fix TV - remove after week 1
 r1_teams[r1_teams$`team name`=="Prof Paresthesia's Pets",]$TV <- 1780
-r1_teams[r1_teams$`team name`=="Zoltans Zwords",]$TV <- 1400
-r1_teams[r1_teams$`team name`=="The Sit Down Boys",]$TV <- 1620
-r1_teams[r1_teams$`team name`=="Legion of Dead Metal",]$TV <- 1390
 r1_teams[r1_teams$`team name`=="Bare Necessities",]$TV <- 1260
 r1_teams[r1_teams$`team name`=="Pseudointellectuals",]$TV <- 1580
-r1_teams[r1_teams$`team name`=="Eat-Eat Man-Things!!",]$TV <- 1690
-r1_teams[r1_teams$`team name`=="Mazdamundis heirs",]$TV <- 1450
 
 
 
@@ -183,7 +179,7 @@ payoff <- function(team, opponent) {
   #payoff <- (1*fundamentals)
   
   # check for previous OI match races
-  tic("finding race")
+  #tic("finding race")
   oi_races <-bind_rows(
     oi_matchups[oi_matchups$Team==team$`team name`,] %>% select("race"= Race2), 
     oi_matchups[oi_matchups$Team2==team$`team name`,] %>% select("race"= Race)
@@ -191,7 +187,7 @@ payoff <- function(team, opponent) {
     group_by(race)
   
   if(any(opponent$race.x %in% oi_races)) payoff <- payoff * 0.8
-  toc()
+  #toc()
   
   if (same_div) payoff <- 0.3
   
@@ -203,7 +199,7 @@ payoff <- function(team, opponent) {
 
 #make even numbers
 #remove one from lowest pool if necessary
-#r1_teams <- filter(r1_teams, !`blood bowl 2 name` %in% c("SladeBlackMage"))
+r1_teams <- filter(r1_teams, !`blood bowl 2 name` %in% c("Al Bundy"))
 
 payoff_mat <- matrix(data = 0, nrow = nrow(r1_teams), ncol = nrow(r1_teams), dimnames = list(r1_teams$`team name`,r1_teams$`team name`))
 
@@ -258,5 +254,5 @@ for_posting <- for_posting %>% filter(!is.na(Race)) %>% sample_frac(size = 1)
 
 for_admins <- for_posting %>% mutate(Team = str_replace(Team, "\\[(.*)\\].*","\\1"), Team2 = str_replace(Team2, "\\[(.*)\\].*","\\1"))
 
-write_csv(for_admins, "week1_admins.csv")
-write_csv(for_posting, "week1_posting.csv")
+write_csv(for_admins, "week2_admins_seasoned.csv")
+write_csv(for_posting, "week2_posting_seasoned.csv")

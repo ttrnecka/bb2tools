@@ -17,7 +17,7 @@ if __name__ == "__main__":
                 waiting, pos = bb2gui.isCompWaitingForStart(comp)
                 if waiting:
                     print("starting")
-                    bb2gui.selectCompetition(pos) 
+                    bb2gui.clickPosition(pos) 
                     bb2gui.startComp()
                     bb2gui.clickBack()
                 else:

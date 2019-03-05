@@ -27,6 +27,7 @@ REL_s <- GET("https://rebbl.net/api/v1/standings/REL") %>%
 #REL_s[REL_s$team=="Not An Anime Sports Team ",]$team <- "Not An Anime Sports Team"
 REL_s[REL_s$team==" Nightmare on Elf Street",]$team <- "Nightmare on Elf Street"
 REL_s[REL_s$team=="  Lords of Decay",]$team <- "Lords of Decay"
+REL_s[REL_s$team=="Not An Anime Sports Team ",]$team <- "Not An Anime Sports Team"
 
 Gman_s <- GET("https://rebbl.net/api/v1/standings/GMan") %>%
   content(as = "text") %>%
@@ -97,7 +98,6 @@ r1_teams <- r1_teams %>%
   mutate(ppg = as.integer(points)/as.integer(games)/3, division = ifelse(region == "Rampup", "10", division))
 
 #fix TV - remove after week 1
-r1_teams[r1_teams$`team name`=="Prof Paresthesia's Pets",]$TV <- 1780
 r1_teams[r1_teams$`team name`=="Bare Necessities",]$TV <- 1260
 r1_teams[r1_teams$`team name`=="Pseudointellectuals",]$TV <- 1580
 

@@ -24,6 +24,7 @@ REL_s <- GET("https://rebbl.net/api/v1/standings/REL") %>%
   jsonlite::fromJSON() %>%
   mutate(region = "REL", division = str_replace(competition, "Season 10 - Division ([0-9]*).?","\\1") %>% as.integer() %>% magrittr::divide_by(10) %>% magrittr::multiply_by(10))
 
+
 #REL_s[REL_s$team=="Not An Anime Sports Team ",]$team <- "Not An Anime Sports Team"
 REL_s[REL_s$team==" Nightmare on Elf Street",]$team <- "Nightmare on Elf Street"
 REL_s[REL_s$team=="  Lords of Decay",]$team <- "Lords of Decay"

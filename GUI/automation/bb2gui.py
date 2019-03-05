@@ -85,7 +85,7 @@ def isCompWaitingForStart(comp_image):
         return True, comp
 
 def isCompTemplate(comp_image):
-    comp = imagesearcharea(template("comp_template.png"), 0,0,0,0,0.95, comp_image)
+    comp = imagesearcharea(template("comp_template2.png"), 0,0,0,0,0.95, comp_image)
     if comp[0]==-1:
         return False, comp
     else:

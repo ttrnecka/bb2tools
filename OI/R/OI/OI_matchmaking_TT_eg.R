@@ -2,6 +2,9 @@ library(tidyverse)
 library(httr)
 library(rvest)
 library(matchingR)
+library(readr)
+library(jsonlite)
+
 
 win_rates <- readRDS("data/win_rates.rds")
 
@@ -14,7 +17,7 @@ signups <- read_csv("data/OI_eg.csv") %>% mutate(race = ifelse(race == "Dwarfs",
 #late_entry <- data_frame(`team name` = "Deepdeepdeep Undercoverer", race = "Underworld", discord = "CptBlood", `blood bowl 2 name` = "Wakrob", reqion = "REL")
 #signups <- bind_rows(signups, late_entry)
 
-signups[signups$`blood bowl 2 name`=="SoulOfDragnsFire",]$race <- "Dark Elf"
+#signups[signups$`blood bowl 2 name`=="SoulOfDragnsFire",]$race <- "Dark Elf"
 
 
 #Last EG season standings
@@ -96,41 +99,47 @@ r1_teams <- r1_teams %>%
   mutate(ppg = as.integer(points)/as.integer(games)/3, division = ifelse(region == "Rampup", "10", division))
 
 
-r1_teams[r1_teams$`team name`=="Gusgen Gougers",]$TV <- 1080
+r1_teams[r1_teams$`team name`=="Gusgen Gougers",]$TV <- 1140
 
 
 # Get old matchups to not allow doubling up
-r1_matchups <- read_csv("r1_matches.csv")
+old_matches  <- read_csv("data/OI_S9_matches.csv")
+r1_matchups <- read_csv("data/r1_matches.csv")
 #r2_matchups <- read_csv("r2_matches.csv")
 #r3_matchups <- read.csv("r3_matches.csv")
-old_matchups <- bind_rows(r1_matchups)
+oi_matchups <- bind_rows(r1_matchups)
+old_matchups <- bind_rows(old_matches, oi_matchups)
+
 
 
 
 #Include OI performance into the r1_teams df
 #OI_results <- api_matches(key, league="REBBL Open Invitational,REBBL Open Invitational 2,REBBL Open Invitational 3,REBBL Open Invitational 4,REBBL Playoffs", start = "2018-09-01", limit = 500)
 
-#OI_tmp <- OI_results$matches %>%
-#  map_df(~data_frame(
-#    homecoach = .$coaches[[1]]$coachname,
-#    awaycoach = .$coaches[[2]]$coachname,
-#    homescore = .$teams[[1]]$score,
-#    awayscore = .$teams[[2]]$score)
-#  ) %>%
-#  mutate(home_pts = case_when(homescore > awayscore ~ 3, homescore == awayscore ~ 1, T ~ 0), away_pts = case_when(home_pts == 3 ~ 0, home_pts == 1 ~ 1, T ~ 3))
+oi_file <- read_file("data/oi_po_matches.json")
+OI_results <- oi_file %>% jsonlite::fromJSON(simplifyDataFrame = simplify)
 
-#OI_score <- bind_rows(
-#  OI_tmp %>% select("blood bowl 2 name" = homecoach, "pts" = home_pts),
-#  OI_tmp %>% select("blood bowl 2 name" = awaycoach, "pts" = away_pts)
-#) %>%
-#  group_by(`blood bowl 2 name`) %>%
-#  summarise(OI_ppg = sum(pts, na.rm = T)/n())
+OI_tmp <- OI_results$matches %>%
+  map_df(~data_frame(
+    homecoach = .$coaches[[1]]$coachname,
+    awaycoach = .$coaches[[2]]$coachname,
+    homescore = .$teams[[1]]$score,
+    awayscore = .$teams[[2]]$score)
+  ) %>%
+  mutate(home_pts = case_when(homescore > awayscore ~ 3, homescore == awayscore ~ 1, T ~ 0), away_pts = case_when(home_pts == 3 ~ 0, home_pts == 1 ~ 1, T ~ 3))
 
-#r1_teams <- left_join(r1_teams, OI_score) %>% replace_na(list(OI_ppg = 0))
+OI_score <- bind_rows(
+  OI_tmp %>% select("blood bowl 2 name" = homecoach, "pts" = home_pts),
+  OI_tmp %>% select("blood bowl 2 name" = awaycoach, "pts" = away_pts)
+) %>%
+  group_by(`blood bowl 2 name`) %>%
+  summarise(OI_ppg = sum(pts, na.rm = T)/n())
+
+r1_teams <- left_join(r1_teams, OI_score) %>% replace_na(list(OI_ppg = 0))
 
 
 #tmp fix
-r1_teams$OI_ppg = 0
+#r1_teams$OI_ppg = 0
 
 payoff <- function(team, opponent) {
   
@@ -164,21 +173,33 @@ payoff <- function(team, opponent) {
   #Putting it together
   fundamentals <- (0.4*TVdiff + 0.1*WRdiff + 0.2*Pdiff + 0.4*Ddiff)
   
-  #OIdiff <- 1 - abs(team$OI_ppg/3 - opponent$OI_ppg/3)
+  OIdiff <- 1 - abs(team$OI_ppg/3 - opponent$OI_ppg/3)
   
-  #payoff <- (0.80*fundamentals) + (0.20 * OIdiff)
-  payoff <- (1*fundamentals)
+  payoff <- (0.95*fundamentals) + (0.05 * OIdiff)
+  #payoff <- (1*fundamentals)
+  
+  # check for previous OI match races
+  #tic("finding race")
+  oi_races <-bind_rows(
+    oi_matchups[oi_matchups$Team==team$`team name`,] %>% select("race"= Race2), 
+    oi_matchups[oi_matchups$Team2==team$`team name`,] %>% select("race"= Race)
+  ) %>% 
+    group_by(race)
+  
+  if(any(opponent$race.x %in% oi_races)) payoff <- payoff * 0.8
+  #toc()
   
   if (same_div) payoff <- 0.3
   
+  #tic("finding old matchup")
   if(any(old_matchups$Team %in% c(team$`team name`, opponent$`team name`) & old_matchups$Team2 %in% c(team$`team name`, opponent$`team name`))) payoff <- 0.3
-  
+  #toc()
   payoff
 }
 
 #make even numbers
 #remove one from lowest pool if necessary
-#r1_teams <- filter(r1_teams, !`blood bowl 2 name` %in% c("TomBombadil"))
+r1_teams <- filter(r1_teams, !`blood bowl 2 name` %in% c("NoahN"))
 
 payoff_mat <- matrix(data = 0, nrow = nrow(r1_teams), ncol = nrow(r1_teams), dimnames = list(r1_teams$`team name`,r1_teams$`team name`))
 

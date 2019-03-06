@@ -4,7 +4,6 @@ library(rvest)
 library(matchingR)
 library(readr)
 library(jsonlite)
-library(tictoc)
 
 win_rates <- readRDS("data/win_rates.rds")
 

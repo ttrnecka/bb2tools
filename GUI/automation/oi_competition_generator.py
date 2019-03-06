@@ -3,6 +3,19 @@ import csv
 
 matchups = csv.DictReader(open("matchups.csv"))
 
+def createComp(matchup):
+    created = False
+    for comp in bb2gui.nextCompetition():
+        template, pos = bb2gui.isCompTemplate(comp) 
+        if template:
+            print("template - setting new competition")
+            bb2gui.clickPosition(pos)
+            bb2gui.createComp(matchup["competition"],matchup["teams"])
+            bb2gui.clickBack()
+            created = True
+            break
+    return created
+
 if __name__ == "__main__":    
     if bb2gui.findAndActivateWindow("blood bowl 2"):
         bb2gui.clickTeamManagement()
@@ -10,15 +23,9 @@ if __name__ == "__main__":
 
         for matchup in matchups:
             bb2gui.selectLeague(matchup["league"])
-            
-            for comp in bb2gui.nextCompetition():
-                template, pos = bb2gui.isCompTemplate(comp) 
-                if template:
-                    print("template - setting new competition")
-                    bb2gui.clickPosition(pos)
-                    bb2gui.createComp(matchup["competition"],matchup["teams"])
-                    bb2gui.clickBack() 
-                    break
+            created = False
+            while not created:
+                created = createComp(matchup)
             bb2gui.clickBack() 
         bb2gui.clickBack()
     else:

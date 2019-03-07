@@ -1,6 +1,20 @@
 import bb2gui
 
- 
+
+def findAndStartComp():
+    found = False
+    for comp in bb2gui.nextCompetition():
+        waiting, pos = bb2gui.isCompWaitingForStart(comp)
+        if waiting:
+            found = True
+            print("starting")
+            bb2gui.clickPosition(pos) 
+            bb2gui.startComp()
+            bb2gui.clickBack()
+        else:
+            print("not waiting for start")
+    return found
+
 if __name__ == "__main__":
     
     if bb2gui.findAndActivateWindow("blood bowl 2"):
@@ -10,19 +24,11 @@ if __name__ == "__main__":
         bb2gui.clickTeamManagement()
         bb2gui.clickMyLeagues()
         for league in oi_leagues:
-            bb2gui.selectLeague(league)
-
-            #find comp to start
-            for comp in bb2gui.nextCompetition():
-                waiting, pos = bb2gui.isCompWaitingForStart(comp)
-                if waiting:
-                    print("starting")
-                    bb2gui.clickPosition(pos) 
-                    bb2gui.startComp()
-                    bb2gui.clickBack()
-                else:
-                    print("not waiting for start")
-            bb2gui.clickBack()
+            found = True
+            while found:
+                bb2gui.selectLeague(league)
+                found = findAndStartComp()
+                bb2gui.clickBack()
         bb2gui.clickBack()
     else:
         print("Blood Bowl 2 not started")

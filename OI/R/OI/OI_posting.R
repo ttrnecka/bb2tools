@@ -1,10 +1,10 @@
 library(tidyverse)
 
-seasoned <- read_csv("week1_posting_seasoned.csv")
+seasoned <- read_csv("week2_posting_seasoned.csv")
 
-fresh <- read_csv("week1_posting_fresh.csv")
+fresh <- read_csv("week2_posting_fresh.csv")
 
-eg <- read_csv("week1_posting_eg.csv")
+eg <- read_csv("week2_posting_eg.csv")
 
 matchups <- bind_rows(seasoned, fresh, eg)
 

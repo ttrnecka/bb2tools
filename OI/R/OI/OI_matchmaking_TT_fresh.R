@@ -223,7 +223,7 @@ payoff_mat[is.na(payoff_mat)] <- 0.3
 matches = roommate(utils = payoff_mat)
 
 while (is.null(matches)) {
-  matches <- roommate(utils = payoff_mat + runif(nrow(payoff_mat)^2, c(-0.01,0.01)))
+  matches <- roommate(utils = payoff_mat + runif(nrow(payoff_mat)^2, c(-0.001,0.001)))
 }
 
 for_posting <- data_frame()
@@ -264,5 +264,6 @@ for_posting <- for_posting %>% filter(!is.na(Race)) %>% sample_frac(size = 1)
 
 for_admins <- for_posting %>% mutate(Team = str_replace(Team, "\\[(.*)\\].*","\\1"), Team2 = str_replace(Team2, "\\[(.*)\\].*","\\1"))
 
+for_admins$TD_diff = abs(for_admins$TV - for_admins$TV2)
 write_csv(for_admins, "week2_admins_fresh.csv")
 write_csv(for_posting, "week2_posting_fresh.csv")

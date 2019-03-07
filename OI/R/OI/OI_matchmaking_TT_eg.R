@@ -199,7 +199,7 @@ payoff <- function(team, opponent) {
 
 #make even numbers
 #remove one from lowest pool if necessary
-r1_teams <- filter(r1_teams, !`blood bowl 2 name` %in% c("NoahN"))
+#r1_teams <- filter(r1_teams, !`blood bowl 2 name` %in% c("NoahN"))
 
 payoff_mat <- matrix(data = 0, nrow = nrow(r1_teams), ncol = nrow(r1_teams), dimnames = list(r1_teams$`team name`,r1_teams$`team name`))
 
@@ -254,6 +254,7 @@ for_posting <- for_posting %>% filter(!is.na(Race)) %>% sample_frac(size = 1)
 
 for_admins <- for_posting %>% mutate(Team = str_replace(Team, "\\[(.*)\\].*","\\1"), Team2 = str_replace(Team2, "\\[(.*)\\].*","\\1"))
 
-write_csv(for_admins, "week1_admins_eg.csv")
-write_csv(for_posting, "week1_posting_eg.csv")
+for_admins$TD_diff = abs(for_admins$TV - for_admins$TV2)
+write_csv(for_admins, "week2_admins_eg.csv")
+write_csv(for_posting, "week2_posting_eg.csv")
 

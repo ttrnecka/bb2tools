@@ -20,8 +20,10 @@ if __name__ == "__main__":
     if bb2gui.findAndActivateWindow("blood bowl 2"):
         bb2gui.clickTeamManagement()
         bb2gui.clickMyLeagues()
-
+        
         for matchup in matchups:
+            matchup["teams"] = matchup["teams"].split("<>") 
+            matchup["teams"] = list(map(lambda x: x.split(":"),matchup["teams"]))
             bb2gui.selectLeague(matchup["league"])
             created = False
             while not created:

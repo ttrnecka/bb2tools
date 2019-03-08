@@ -119,19 +119,20 @@ def createComp(compname,teams = []):
     # navigate to teams
     clickWhenActive("teams_button")
     
-    #switch to all teams
+    #wait till rendered
     found = False
     while not found:
         left_arrow = imagesearcharea(template("small_left.png"),0,0,500,500,0.9)
         if left_arrow[0]!=-1:
             found = True
-            moveToAndClick(left_arrow[0]+1,left_arrow[1]+1)
+    #        moveToAndClick(left_arrow[0]+1,left_arrow[1]+1)
         time.sleep(0.1)
-
+    
     team_input = imagesearch(template("enter_team_name_text.PNG"), 0.99)
     coach_input = imagesearch(template("enter_coach_name_text.PNG"), 0.99)
-    for team in teams.split("<>"):
-        coach, teamname = team.split(":")
+    for team in teams:
+        coach, teamname = team
+        # fill the coach/team info while in member section
         moveToAndClick(team_input[0]+320,team_input[1])
         # clear it
         for _ in range(0, 24):
@@ -143,10 +144,11 @@ def createComp(compname,teams = []):
         for _ in range(0, 24):
             pyautogui.press("backspace")
         pyautogui.typewrite(coach,0.1)
+        time.sleep(0.1)
+        # navigate to All
+        clickSmallLeft()
 
-        #click search
-        # navigate to teams
-        clickWhenActive("search_button")
+        # moving left to All initiates the search
         # search with coach is fast but lets wait 2 seconds just in case
         time.sleep(2)
         # look for no result or invite button
@@ -169,6 +171,8 @@ def createComp(compname,teams = []):
                 # once the frame is found we looping until it disapears
                 while ticket_frame[0]!=-1:
                     ticket_frame = imagesearch(template("ticket_set_frame.PNG"), 0.9)
+        #navigate back to member
+        clickSmallRight()
 
 def isMainMenu():
     campaign = imagesearch(os.path.join(TEMPLATE_PATH, "campaign.png"))
@@ -195,3 +199,18 @@ def clickWhenActive(name,precision=0.99):
     pyautogui.moveTo(pos[0]+10,pos[1]+10)
     pos = imagesearch_loop(template(f"{name}_active.png"),0.1, precision)
     moveToAndClick(pos[0]+10,pos[1]+10)
+
+def clickSmallLeft():
+    __clickWhenFound("small_left",0,0,750,500)
+
+def clickSmallRight():
+    __clickWhenFound("small_right",0,0,750,500)
+
+def __clickWhenFound(name,x1=0,y1=0,x2=0,y2=0,precision=0.9):
+    found = False
+    while not found:
+        pos = imagesearcharea(template(f"{name}.png"),x1,y1,x2,y2,precision)
+        if pos[0]!=-1:
+            found = True
+            moveToAndClick(pos[0]+1,pos[1]+1)
+        time.sleep(0.1)

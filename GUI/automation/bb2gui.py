@@ -92,38 +92,18 @@ def isCompTemplate(comp_image):
         return True, comp
 
 def clickBack():
-    back = imagesearch_loop(template("back.PNG"),0.1, 0.999)
-    pyautogui.moveTo(back[0]+10,back[1]+10)
-    back = imagesearch_loop(template("back_active.PNG"),0.1, 0.99)
-    moveToAndClick(back[0]+10,back[1]+10)
+    clickWhenActive("back",0.99)
 
 def clickYes():
-    clickImgs("yes.png","yes_active.png")
-
-def clickImgs(png1,png2):
-    pos = imagesearch_loop(template(png1),0.1, 0.99)
-    pyautogui.moveTo(pos[0]+5,pos[1]+5)
-    pos = imagesearch_loop(template(png2),0.1, 0.99)
-    moveToAndClick(pos[0]+5,pos[1]+5)
-
+    clickWhenActive("yes")
 
 def startComp():
-    schedule = imagesearch_loop(template("schedule_button.png"),0.1, 0.99)
-    pyautogui.moveTo(schedule[0]+10,schedule[1]+10)
-    schedule = imagesearch_loop(template("schedule_button_active.png"),0.1, 0.99)
-    moveToAndClick(schedule[0]+10,schedule[1]+10)
-
-    start = imagesearch_loop(template("start_competition.PNG"),0.1, 0.99)
-    pyautogui.moveTo(start[0]+10,start[1]+10)
-    start = imagesearch_loop(template("start_competition_active.PNG"),0.1, 0.99)
-    moveToAndClick(start[0]+10,start[1]+10)
-
+    clickWhenActive("schedule_button")
+    clickWhenActive("start_competition")
+    
 def createComp(compname,teams = []):
-    ns = imagesearch_loop(template("new_season.png"),0.1, 0.99)
-    pyautogui.moveTo(ns[0]+10,ns[1]+10)
-    ns = imagesearch_loop(template("new_season_active.png"),0.1, 0.99)
-    moveToAndClick(ns[0]+10,ns[1]+10)
-
+    clickWhenActive("new_season")
+    
     # navigate to input
     inp = imagesearch_loop(template("new_season_comp_name_input.png"),0.1, 0.99)
     moveToAndClick(inp[0]+10,inp[1]+10)
@@ -135,6 +115,60 @@ def createComp(compname,teams = []):
 
     clickYes()
     inp = imagesearch_loop(template("comp_created_msg.png"),0.1, 0.9)
+
+    # navigate to teams
+    clickWhenActive("teams_button")
+    
+    #switch to all teams
+    found = False
+    while not found:
+        left_arrow = imagesearcharea(template("small_left.png"),0,0,500,500,0.9)
+        if left_arrow[0]!=-1:
+            found = True
+            moveToAndClick(left_arrow[0]+1,left_arrow[1]+1)
+        time.sleep(0.1)
+
+    team_input = imagesearch(template("enter_team_name_text.PNG"), 0.99)
+    coach_input = imagesearch(template("enter_coach_name_text.PNG"), 0.99)
+    for team in teams.split("<>"):
+        coach, teamname = team.split(":")
+        moveToAndClick(team_input[0]+320,team_input[1])
+        # clear it
+        for _ in range(0, 24):
+            pyautogui.press("backspace")
+        pyautogui.typewrite(teamname,0.1)
+
+        moveToAndClick(coach_input[0]+320,coach_input[1])
+        # clear it
+        for _ in range(0, 24):
+            pyautogui.press("backspace")
+        pyautogui.typewrite(coach,0.1)
+
+        #click search
+        # navigate to teams
+        clickWhenActive("search_button")
+        # search with coach is fast but lets wait 2 seconds just in case
+        time.sleep(2)
+        # look for no result or invite button
+        found = False
+
+        while not found:
+            time.sleep(0.1)
+            no_result = imagesearch(template("no_result_text.PNG"), 0.99)
+            invite = imagesearcharea(template("invite_team_button.PNG"),0,0,900,600, 0.99)
+
+            if no_result[0]!=-1:
+                found = True
+                #exit team loop
+            elif invite[0]!=-1:
+                found = True
+                pyautogui.moveTo(invite[0]+10,invite[1]+5)
+                ns = imagesearch_loop(template("invite_team_button_active.png"),0.1, 0.99)
+                moveToAndClick(ns[0]+10,ns[1]+5)
+                ticket_frame = imagesearch_loop(template("ticket_set_frame.PNG"),0.1, 0.9)
+                # once the frame is found we looping until it disapears
+                while ticket_frame[0]!=-1:
+                    ticket_frame = imagesearch(template("ticket_set_frame.PNG"), 0.9)
 
 def isMainMenu():
     campaign = imagesearch(os.path.join(TEMPLATE_PATH, "campaign.png"))
@@ -155,3 +189,9 @@ def resetCursor():
 
 def template(img_file):
     return os.path.join(TEMPLATE_PATH, img_file)
+
+def clickWhenActive(name,precision=0.99):
+    pos = imagesearch_loop(template(f"{name}.png"),0.1, precision)
+    pyautogui.moveTo(pos[0]+10,pos[1]+10)
+    pos = imagesearch_loop(template(f"{name}_active.png"),0.1, precision)
+    moveToAndClick(pos[0]+10,pos[1]+10)

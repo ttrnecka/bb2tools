@@ -3,7 +3,7 @@ import csv
 
 matchups = csv.DictReader(open("matchups.csv"))
 
-def createComp(matchup):
+def createComp(matchup): 
     created = False
     for comp in bb2gui.nextCompetition():
         template, pos = bb2gui.isCompTemplate(comp) 

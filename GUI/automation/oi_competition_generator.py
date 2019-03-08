@@ -1,7 +1,7 @@
 import bb2gui
 import csv
 
-matchups = csv.DictReader(open("matchups.csv"))
+matchups = csv.DictReader(open("matchups.csv", encoding='utf-8'))
 
 def createComp(matchup): 
     created = False

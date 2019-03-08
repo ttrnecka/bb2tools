@@ -3,8 +3,11 @@ import win32gui
 import time
 import os
 import sys
+from pynput.keyboard import Key, Controller
 
 TEMPLATE_PATH = "data/image_templates"
+
+keyboard = Controller()
 
 def windowEnumerationHandler(hwnd, top_windows):
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
@@ -23,9 +26,9 @@ def findAndActivateWindow(name):
             break
     resetCursor()
     time.sleep(0.5)
-    if isMainMenu()!=True:
-        print("Blood Bowl needs to be in main menu!!!")
-        sys.exit()
+    #if isMainMenu()!=True:
+    #    print("Blood Bowl needs to be in main menu!!!")
+    #    sys.exit()
     return found
 
 def clickTeamManagement():
@@ -100,7 +103,7 @@ def clickYes():
 def startComp():
     clickWhenActive("schedule_button")
     clickWhenActive("start_competition")
-    
+
 def createComp(compname,teams = []):
     clickWhenActive("new_season")
     
@@ -111,46 +114,45 @@ def createComp(compname,teams = []):
     for _ in range(0, 24):
         pyautogui.press("backspace")
 
-    pyautogui.typewrite(compname)
-
+    #pyautogui.typewrite(compname)
+    keyboard.type(compname)
+    time.sleep(1)
+    
     clickYes()
     inp = imagesearch_loop(template("comp_created_msg.png"),0.1, 0.9)
 
-    # navigate to teams
-    clickWhenActive("teams_button")
-    
-    #wait till rendered
-    found = False
-    while not found:
-        left_arrow = imagesearcharea(template("small_left.png"),0,0,500,500,0.9)
-        if left_arrow[0]!=-1:
-            found = True
-    #        moveToAndClick(left_arrow[0]+1,left_arrow[1]+1)
-        time.sleep(0.1)
-    
-    team_input = imagesearch(template("enter_team_name_text.PNG"), 0.99)
-    coach_input = imagesearch(template("enter_coach_name_text.PNG"), 0.99)
     for team in teams:
+        # navigate to teams
+        clickWhenActive("teams_button")
+    
+        #wait till rendered
+        found = False
+        while not found:
+            left_arrow = imagesearcharea(template("small_left.png"),0,0,500,500,0.9)
+            if left_arrow[0]!=-1:
+                found = True
+        #        moveToAndClick(left_arrow[0]+1,left_arrow[1]+1)
+            time.sleep(0.1)
+
+        team_input = imagesearch(template("enter_team_name_text.PNG"), 0.99)
+        coach_input = imagesearch(template("enter_coach_name_text.PNG"), 0.99)
+        
         coach, teamname = team
         # fill the coach/team info while in member section
-        moveToAndClick(team_input[0]+320,team_input[1])
-        # clear it
-        for _ in range(0, 24):
-            pyautogui.press("backspace")
-        pyautogui.typewrite(teamname,0.1)
 
+        moveToAndClick(team_input[0]+320,team_input[1])
+        keyboard.type(f"%{teamname}"[0:25])
+        time.sleep(1.1)
         moveToAndClick(coach_input[0]+320,coach_input[1])
-        # clear it
-        for _ in range(0, 24):
-            pyautogui.press("backspace")
-        pyautogui.typewrite(coach,0.1)
-        time.sleep(0.1)
+        keyboard.type(coach)
+        time.sleep(1.1)
         # navigate to All
         clickSmallLeft()
 
         # moving left to All initiates the search
         # search with coach is fast but lets wait 2 seconds just in case
         time.sleep(2)
+        
         # look for no result or invite button
         found = False
 
@@ -171,8 +173,78 @@ def createComp(compname,teams = []):
                 # once the frame is found we looping until it disapears
                 while ticket_frame[0]!=-1:
                     ticket_frame = imagesearch(template("ticket_set_frame.PNG"), 0.9)
-        #navigate back to member
-        clickSmallRight()
+        
+        # naviagte to schedule to clear the inputs
+        clickWhenActive("schedule_button")
+
+def scanTeams(compname,teams = []):
+    clickWhenActive("new_season")
+    
+    # navigate to input
+    inp = imagesearch_loop(template("new_season_comp_name_input.png"),0.1, 0.99)
+    moveToAndClick(inp[0]+10,inp[1]+10)
+    # clear it
+    for _ in range(0, 24):
+        pyautogui.press("backspace")
+
+    #pyautogui.typewrite(compname)
+    keyboard.type(compname)
+    time.sleep(1)
+
+    clickYes()
+    inp = imagesearch_loop(template("comp_created_msg.png"),0.1, 0.9)
+
+    for team in teams:
+        # navigate to teams
+        clickWhenActive("teams_button")
+    
+        #wait till rendered
+        found = False
+        while not found:
+            left_arrow = imagesearcharea(template("small_left.png"),0,0,500,500,0.9)
+            if left_arrow[0]!=-1:
+                found = True
+        #        moveToAndClick(left_arrow[0]+1,left_arrow[1]+1)
+            time.sleep(0.1)
+
+        team_input = imagesearch(template("enter_team_name_text.PNG"), 0.99)
+        coach_input = imagesearch(template("enter_coach_name_text.PNG"), 0.99)
+        
+        coach, teamname = team
+        # fill the coach/team info while in member section
+
+        moveToAndClick(team_input[0]+320,team_input[1])
+        keyboard.type(f"%{teamname}"[0:25])
+        time.sleep(1.1)
+        moveToAndClick(coach_input[0]+320,coach_input[1])
+        keyboard.type(coach)
+        time.sleep(1.1)
+        # navigate to All
+        clickSmallLeft()
+
+        # moving left to All initiates the search
+        # search with coach is fast but lets wait 2 seconds just in case
+        time.sleep(2)
+        
+        # look for no result or invite button
+        found = False
+
+        while not found:
+            time.sleep(0.1)
+            no_result = imagesearch(template("no_result_text.PNG"), 0.99)
+            invite = imagesearcharea(template("invite_team_button.PNG"),0,0,900,600, 0.99)
+
+            if no_result[0]!=-1:
+                found = True
+                #exit team loop
+                print(f"Not Found: {coach}: {teamname}")
+            elif invite[0]!=-1:
+                found = True
+                print(f"Found: {coach}: {teamname}")
+        
+        # naviagte to schedule to clear the inputs
+        clickWhenActive("schedule_button")
+
 
 def isMainMenu():
     campaign = imagesearch(os.path.join(TEMPLATE_PATH, "campaign.png"))

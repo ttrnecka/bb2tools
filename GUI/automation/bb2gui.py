@@ -26,9 +26,9 @@ def findAndActivateWindow(name):
             break
     resetCursor()
     time.sleep(0.5)
-    #if isMainMenu()!=True:
-    #    print("Blood Bowl needs to be in main menu!!!")
-    #    sys.exit()
+    if isMainMenu()!=True:
+        print("Blood Bowl needs to be in main menu!!!")
+        sys.exit()
     return found
 
 def clickTeamManagement():

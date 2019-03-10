@@ -11,8 +11,6 @@ def findAndStartComp():
             bb2gui.clickPosition(pos) 
             bb2gui.startComp()
             bb2gui.clickBack()
-        else:
-            print("not waiting for start")
     return found
 
 if __name__ == "__main__":

@@ -101,7 +101,7 @@ def clickYes():
     clickWhenActive("yes")
 
 def startComp():
-    clickWhenActive("schedule_button")
+    clickWhenActive("schedule_button", 0.99)
     clickWhenActive("start_competition")
 
 def createComp(compname,teams = []):
@@ -169,10 +169,11 @@ def createComp(compname,teams = []):
                 pyautogui.moveTo(invite[0]+10,invite[1]+5)
                 ns = imagesearch_loop(template("invite_team_button_active.png"),0.1, 0.99)
                 moveToAndClick(ns[0]+10,ns[1]+5)
-                ticket_frame = imagesearch_loop(template("ticket_set_frame.PNG"),0.1, 0.9)
+                ticket = imagesearch_loop(template("ticket_sent_msg.png"),0.1, 0.9)
+                #ticket_frame = imagesearch_loop(template("ticket_set_frame.PNG"),0.1, 0.9)
                 # once the frame is found we looping until it disapears
-                while ticket_frame[0]!=-1:
-                    ticket_frame = imagesearch(template("ticket_set_frame.PNG"), 0.9)
+                while ticket[0]!=-1:
+                    ticket = imagesearch(template("ticket_sent_msg.png"), 0.9)
         
         # naviagte to schedule to clear the inputs
         clickWhenActive("schedule_button")
@@ -267,10 +268,22 @@ def template(img_file):
     return os.path.join(TEMPLATE_PATH, img_file)
 
 def clickWhenActive(name,precision=0.99):
-    pos = imagesearch_loop(template(f"{name}.png"),0.1, precision)
-    pyautogui.moveTo(pos[0]+10,pos[1]+10)
-    pos = imagesearch_loop(template(f"{name}_active.png"),0.1, precision)
-    moveToAndClick(pos[0]+10,pos[1]+10)
+    # cannot user imagesearch_loop for this as the active button sometimes does nto appear after mouseover if the response from backed take a bit longer
+    # finds base button
+    pos1 = imagesearch(template(f"{name}.png"), precision)
+    while pos1[0]==-1:
+        time.sleep(0.1)
+        pos1 = imagesearch(template(f"{name}.png"), precision)
+    pyautogui.moveTo(pos1[0]+10,pos1[1]+10)
+    # waits until the button tuns active
+    pos2 = imagesearch(template(f"{name}_active.png"), precision)
+    while pos2[0]==-1:
+        # move mouse a bit, sometime the gui takes some time to load and the button stays inactive despite mouseover
+        pyautogui.moveTo(pos1[0],pos1[1])
+        pyautogui.moveTo(pos1[0]+10,pos1[1]+10)
+        time.sleep(0.1)
+        pos2 = imagesearch(template(f"{name}_active.png"), precision)
+    moveToAndClick(pos2[0]+10,pos2[1]+10)
 
 def clickSmallLeft():
     __clickWhenFound("small_left",0,0,750,500)

@@ -7,6 +7,16 @@ from pynput.keyboard import Key, Controller
 
 TEMPLATE_PATH = "data/image_templates"
 
+LEAGUES = {
+    "TT test":"tt_test.png",
+    "ReBBL Open Invitational":"OI1.png",
+    "ReBBL Open Invitational 2":"OI2.png",
+    "ReBBL Open Invitational 3":"OI3.png",
+    "ReBBL Open Invitational 4":"OI4.png",
+    "ReBBL Open Invitational 5":"OI5.png",
+    "ReBBL Open Invitational 6":"OI6.png",
+}
+
 keyboard = Controller()
 
 def windowEnumerationHandler(hwnd, top_windows):
@@ -41,7 +51,12 @@ def clickMyLeagues():
     moveToAndClick(pos[0]+10,pos[1]+10)
     imagesearch_loop(template("right.png"),0.2)
 
-def selectLeague(image_file_name):
+def selectLeague(name):
+    if name not in LEAGUES:
+        pyautogui.alert(text=f"League {name} is not defined in the list. Exiting!!!",title='',button="OK")
+        sys.exit()
+    image_file_name = LEAGUES[name]
+
     #move cursor to the corner so it cancels highlighting
     resetCursor()
     while True:
@@ -137,7 +152,7 @@ def createComp(compname,teams = []):
         team_input = imagesearch(template("enter_team_name_text.PNG"), 0.99)
         coach_input = imagesearch(template("enter_coach_name_text.PNG"), 0.99)
         
-        coach, teamname = team
+        coach, teamname = team["coach"], team["team"]
         # fill the coach/team info while in member section
 
         moveToAndClick(team_input[0]+320,team_input[1])
@@ -211,7 +226,7 @@ def scanTeams(compname,teams = []):
         team_input = imagesearch(template("enter_team_name_text.PNG"), 0.99)
         coach_input = imagesearch(template("enter_coach_name_text.PNG"), 0.99)
         
-        coach, teamname = team
+        coach, teamname = team["coach"], team["team"]
         # fill the coach/team info while in member section
 
         moveToAndClick(team_input[0]+320,team_input[1])

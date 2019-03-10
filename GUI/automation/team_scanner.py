@@ -8,22 +8,22 @@ teams = csv.DictReader(open("teams.csv", encoding='utf-8'))
 teams_processed = []
 
 for team in teams:
-    teams_processed.append([team["coach"],team["team"]])
+    teams_processed.append({"coach":team["coach"],"team":team["team"]})
 
 matchup = {
-    "league": "tt_test.png",
+    "league": "TT test",
     "competition": "team_scanner",
     "teams": teams_processed
 }
 
-def createComp(matchup): 
+def createComp(name,teams): 
     created = False
     for comp in bb2gui.nextCompetition():
         template, pos = bb2gui.isCompTemplate(comp) 
         if template:
             print("template - setting scanning competition")
             bb2gui.clickPosition(pos)
-            bb2gui.scanTeams(matchup["competition"],matchup["teams"])
+            bb2gui.scanTeams(name,teams)
             bb2gui.clickBack()
             created = True
             break
@@ -32,14 +32,13 @@ def createComp(matchup):
 if __name__ == "__main__":
     
     if bb2gui.findAndActivateWindow("blood bowl 2"):
-        league = "tt_test.png"
         bb2gui.clickTeamManagement()
         bb2gui.clickMyLeagues()
-        bb2gui.selectLeague(league)
+        bb2gui.selectLeague(matchup["league"])
         #
         created = False
         while not created:
-            created = createComp(matchup)
+            created = createComp(matchup["competition"],matchup["teams"])
         bb2gui.clickBack()
         bb2gui.clickBack()
     else:

@@ -55,6 +55,7 @@ add_ins <- tibble::tribble(
   "Season 9 - Division 1", "Eat-Eat Man-Things!!", 938766, "Skaven", 11, 13,3,4,2,1,"REL", 1,
   "Minors", "Pseudointellectuals", 2223524, "Necromantic", 14, 9,6,1,2,3,"BigO", 7,
   "Season 9 - Division 1", "Tribu Urbana", 1540843, "ProElf", 7, 13,2,10,1,-10,"REL", 1,
+  "Season 9 - Division 7", "The Rotterhood", 1540843, "Nurgle", 24, 13,7,3,3,4,"REL", 7,
 )
 
 #Combine everything together
@@ -64,7 +65,7 @@ all_standings <- bind_rows(REL_s, Gman_s, BigO_s, add_ins) %>%
 
 #Team TV for next round
 next_TV <- function(teamID) {
-  nTV_page <- GET(glue::glue("https://rebbl.net/rebbl/team/{teamID}")) %>%
+  nTV_page <- GET(glue::glue("https://rebbl.net/rebbl/old_team/{teamID}")) %>%
     content() %>%
     html_children() %>%
     .[[2]] %>%
@@ -99,17 +100,17 @@ r1_teams <- r1_teams %>%
   mutate(ppg = as.integer(points)/as.integer(games)/3, division = ifelse(region == "Rampup", "10", division))
 
 #fix TV - remove after week 1
-r1_teams[r1_teams$`team name`=="Bare Necessities",]$TV <- 1260
-r1_teams[r1_teams$`team name`=="Pseudointellectuals",]$TV <- 1640
+#r1_teams[r1_teams$`team name`=="Bare Necessities",]$TV <- 1260
+#r1_teams[r1_teams$`team name`=="Pseudointellectuals",]$TV <- 1640
 
 
 
 # Get old matchups to not allow doubling up
 old_matches  <- read_csv("data/OI_S9_matches.csv")
 r1_matchups <- read_csv("data/r1_matches.csv")
-#r2_matchups <- read_csv("r2_matches.csv")
+r2_matchups <- read_csv("data/r2_matches.csv")
 #r3_matchups <- read.csv("r3_matches.csv")
-oi_matchups <- bind_rows(r1_matchups)
+oi_matchups <- bind_rows(r1_matchups,r2_matchups)
 old_matchups <- bind_rows(old_matches, oi_matchups)
 
 
@@ -159,7 +160,7 @@ payoff <- function(team, opponent) {
   WR = win_rates %>% scales::rescale(c(0,1))
   
   WRdiff = 1 - abs(WR[team$race.x, opponent$race.x] - WR[opponent$race.x, team$race.x])
-  if(team$race.x == opponent$race.x) {WRdiff <- 0.8}
+  if(team$race.x == opponent$race.x) {WRdiff <- 0.7}
   
   
   #Performance
@@ -172,11 +173,11 @@ payoff <- function(team, opponent) {
   same_div <- (team$competition == opponent$competition) & (team$region == opponent$region)
   
   #Putting it together
-  fundamentals <- (0.4*TVdiff + 0.1*WRdiff + 0.2*Pdiff + 0.4*Ddiff)
+  fundamentals <- (0.4*TVdiff + 0.1*WRdiff + 0.2*Pdiff + 0.3*Ddiff)
   
   OIdiff <- 1 - abs(team$OI_ppg/3 - opponent$OI_ppg/3)
   
-  payoff <- (0.95*fundamentals) + (0.05 * OIdiff)
+  payoff <- (0.9*fundamentals) + (0.1 * OIdiff)
   #payoff <- (1*fundamentals)
   
   # check for previous OI match races
@@ -256,5 +257,5 @@ for_posting <- for_posting %>% filter(!is.na(Race)) %>% sample_frac(size = 1)
 for_admins <- for_posting %>% mutate(Team = str_replace(Team, "\\[(.*)\\].*","\\1"), Team2 = str_replace(Team2, "\\[(.*)\\].*","\\1"))
 
 for_admins$TD_diff = abs(for_admins$TV - for_admins$TV2)
-write_csv(for_admins, "week2_admins_seasoned.csv")
-write_csv(for_posting, "week2_posting_seasoned.csv")
+write_csv(for_admins, "week3_admins_seasoned.csv")
+write_csv(for_posting, "week3_posting_seasoned.csv")

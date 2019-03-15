@@ -2,6 +2,7 @@ require_relative '../lib/helpers.rb'
 
 cfg=YAML.load_file(CFG_FILE)
 
+#saved_oi = JSON.parse(File.read("oi_po_matches.json"))
 opts = {
     api_key: cfg["api_key"],
 }

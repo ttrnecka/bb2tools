@@ -3,6 +3,7 @@ import win32gui
 import time
 import os
 import sys
+import logging
 from pynput.keyboard import Key, Controller
 
 TEMPLATE_PATH = "data/image_templates"
@@ -30,14 +31,14 @@ def findAndActivateWindow(name):
     for i in top_windows:
         if name in i[1].lower():
             found = True
-            print('%s found - switching'%(name))
+            logging.info('%s found - switching'%(name))
             win32gui.ShowWindow(i[0],5)
             win32gui.SetForegroundWindow(i[0])
             break
     resetCursor()
     time.sleep(0.5)
     if isMainMenu()!=True:
-        print("Blood Bowl needs to be in main menu!!!")
+        logging.error("Blood Bowl needs to be in main menu!!!")
         sys.exit()
     return found
 
@@ -53,7 +54,9 @@ def clickMyLeagues():
 
 def selectLeague(name):
     if name not in LEAGUES:
-        pyautogui.alert(text=f"League {name} is not defined in the list. Exiting!!!",title='',button="OK")
+        msg = f"League {name} is not defined in the list. Exiting!!!"
+        pyautogui.alert(text=msg,title='',button="OK")
+        logging.error(msg)
         sys.exit()
     image_file_name = LEAGUES[name]
 
@@ -71,6 +74,7 @@ def selectLeague(name):
 def clickPosition(position):
     moveToAndClick(position[0]+10,position[1]+10)
 
+# next competition generator, needs to be run inside selected league
 def nextCompetition():
     i = 0
     #move cursor to the corner so it does not mess the center pics being taken
@@ -82,7 +86,7 @@ def nextCompetition():
     starting_image.save(template("tmp_league.png"))
 
     while True:
-        imagesearch_loop(template("comp_round.png"),0.1,0.95)
+        imagesearch_loop(template("comp_round.png"),0.2,0.95)
         image = pyautogui.screenshot()
         # ignore first competition as it is the starting one
         if i>1:
@@ -129,25 +133,30 @@ def createComp(compname,teams = []):
     for _ in range(0, 24):
         pyautogui.press("backspace")
 
-    #pyautogui.typewrite(compname)
     keyboard.type(compname)
     time.sleep(1)
     
     clickYes()
     inp = imagesearch_loop(template("comp_created_msg.png"),0.1, 0.9)
-
+    logging.info(f"Competition {compname} created")
     for team in teams:
         # navigate to teams
         clickWhenActive("teams_button")
     
         #wait till rendered
         found = False
+        i = 0
         while not found:
             left_arrow = imagesearcharea(template("small_left.png"),0,0,500,500,0.9)
             if left_arrow[0]!=-1:
                 found = True
         #        moveToAndClick(left_arrow[0]+1,left_arrow[1]+1)
             time.sleep(0.1)
+            i+=1
+            # sometimes the click is interupted by BB, if we do not get anything in 3 seconds then try it again
+            if i == 30 and not found:
+                clickWhenActive("teams_button")
+                i = 0
 
         team_input = imagesearch(template("enter_team_name_text.PNG"), 0.99)
         coach_input = imagesearch(template("enter_coach_name_text.PNG"), 0.99)
@@ -166,29 +175,40 @@ def createComp(compname,teams = []):
 
         # moving left to All initiates the search
         # search with coach is fast but lets wait 2 seconds just in case
-        time.sleep(2)
+        # time.sleep(2)
         
         # look for no result or invite button
         found = False
 
+        i = 0
         while not found:
             time.sleep(0.1)
-            no_result = imagesearch(template("no_result_text.PNG"), 0.99)
-            invite = imagesearcharea(template("invite_team_button.PNG"),0,0,900,600, 0.99)
+            #no_result = imagesearch(template("no_result_text.PNG"), 0.99)
+            invite = imagesearcharea(template("invite_team_button.PNG"),0,0,900,550, 0.99)
+            invite2 = imagesearcharea(template("invite_team_button.PNG"),900,470,1100,550, 0.99)
 
-            if no_result[0]!=-1:
+            if invite[0]!=-1:
                 found = True
-                #exit team loop
-            elif invite[0]!=-1:
-                found = True
+                # mutliple teams found
+                if invite2[0]!=-1: 
+                    logging.error(f"Found multiple teams for coach {coach} and team {teamname}")
+                    break
+                logging.info(f"Found team for coach {coach} and team {teamname}")
                 pyautogui.moveTo(invite[0]+10,invite[1]+5)
                 ns = imagesearch_loop(template("invite_team_button_active.png"),0.1, 0.99)
                 moveToAndClick(ns[0]+10,ns[1]+5)
                 ticket = imagesearch_loop(template("ticket_sent_msg.png"),0.1, 0.9)
-                #ticket_frame = imagesearch_loop(template("ticket_set_frame.PNG"),0.1, 0.9)
-                # once the frame is found we looping until it disapears
+                logging.info(f"Ticket sent")
                 while ticket[0]!=-1:
                     ticket = imagesearch(template("ticket_sent_msg.png"), 0.9)
+
+            else:
+                i+=1
+
+            if i == 50:
+                logging.error(f"Team not found for coach {coach} and team {teamname}")
+                break
+            
         
         # naviagte to schedule to clear the inputs
         clickWhenActive("schedule_button")

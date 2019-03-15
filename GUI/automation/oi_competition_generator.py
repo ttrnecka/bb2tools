@@ -1,13 +1,14 @@
 import bb2gui
 import csv
+import logging
 
+logging.basicConfig(filename='generator.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', datefmt='%Y-%m-%d %I:%M:%S')
 assignmets = csv.DictReader(open("assignments.csv", encoding='utf-8'))
 leagues = {}
 
 for asgn in assignmets:
     leagues.setdefault(asgn["league"], {}).setdefault(asgn["competition"],[]).append({"coach":asgn["coach"], "team":asgn["team"]})
 
-print(leagues)
 def createComp(name,teams): 
     created = False
     for comp in bb2gui.nextCompetition():

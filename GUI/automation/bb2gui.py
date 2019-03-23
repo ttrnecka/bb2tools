@@ -75,7 +75,7 @@ def clickPosition(position):
     moveToAndClick(position[0]+10,position[1]+10)
 
 # next competition generator, needs to be run inside selected league
-def nextCompetition():
+def nextCompetition(direction="right"):
     i = 0
     #move cursor to the corner so it does not mess the center pics being taken
     resetCursor()
@@ -86,7 +86,7 @@ def nextCompetition():
     starting_image.save(template("tmp_league.png"))
 
     while True:
-        imagesearch_loop(template("comp_round.png"),0.2,0.95)
+        imagesearch_loop(template("comp_round.png"),0.1,0.95)
         image = pyautogui.screenshot()
         # ignore first competition as it is the starting one
         if i>1:
@@ -96,7 +96,7 @@ def nextCompetition():
         
         yield image
         i+=1
-        right_arrow = imagesearch(template("right.png"))
+        right_arrow = imagesearch(template(f"{direction}.png"))
         moveToAndClick(right_arrow[0]+10,right_arrow[1]+10)
 
 def isCompWaitingForStart(comp_image):

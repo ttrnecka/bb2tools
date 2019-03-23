@@ -11,7 +11,7 @@ for asgn in assignmets:
 
 def createComp(name,teams): 
     created = False
-    for comp in bb2gui.nextCompetition():
+    for comp in bb2gui.nextCompetition("left"):
         template, pos = bb2gui.isCompTemplate(comp) 
         if template:
             print("template - setting new competition")

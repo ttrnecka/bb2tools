@@ -107,10 +107,9 @@ r1_teams <- r1_teams %>%
 old_matches  <- read_csv("data/OI_S9_matches.csv")
 r1_matchups <- read_csv("data/r1_matches.csv")
 r2_matchups <- read_csv("data/r2_matches.csv")
-#r3_matchups <- read.csv("r3_matches.csv")
-oi_matchups <- bind_rows(r1_matchups,r2_matchups)
+r3_matchups <- read.csv("data/r3_matches.csv")
+oi_matchups <- bind_rows(r1_matchups,r2_matchups,r3_matchups)
 old_matchups <- bind_rows(old_matches, oi_matchups)
-
 
 
 
@@ -153,7 +152,7 @@ payoff <- function(team, opponent) {
   
   max_diff <- r1_teams$TV %>% range() %>% diff
   
-  TVdiff <- 1 - (abs(floor((team$TV - opponent$TV)/50)/10) %>% scales::squish()) # cap out at 500TV difference
+  TVdiff <- 1 - (abs(floor((team$TV - opponent$TV)/30)/10) %>% scales::squish()) # cap out at 500TV difference
   
   #Race
   WR = win_rates %>% scales::rescale(c(0,1))
@@ -172,11 +171,11 @@ payoff <- function(team, opponent) {
   same_div <- (team$competition == opponent$competition) & (team$region == opponent$region)
   
   #Putting it together
-  fundamentals <- (0.4*TVdiff + 0.1*WRdiff + 0.2*Pdiff + 0.3*Ddiff)
+  fundamentals <- (0.5*TVdiff + 0.1*WRdiff + 0.2*Pdiff + 0.3*Ddiff)
   
   OIdiff <- 1 - abs(team$OI_ppg/3 - opponent$OI_ppg/3)
   
-  payoff <- (0.9*fundamentals) + (0.1 * OIdiff)
+  payoff <- (0.8*fundamentals) + (0.2 * OIdiff)
   #payoff <- (1*fundamentals)
   
   # check for previous OI match races
@@ -187,13 +186,14 @@ payoff <- function(team, opponent) {
   ) %>% 
     group_by(race)
   
-  if(any(opponent$race.x %in% oi_races)) payoff <- payoff * 0.8
+  if(any(opponent$race.x %in% oi_races)) payoff <- payoff * 0.1
   #toc()
   
-  if (same_div) payoff <- 0.3
+  if (same_div) payoff <- payoff * 0.3
+  if (TVdiff == 0 ) payoff <- payoff * 0.2
   
   #tic("finding old matchup")
-  if(any(old_matchups$Team %in% c(team$`team name`, opponent$`team name`) & old_matchups$Team2 %in% c(team$`team name`, opponent$`team name`))) payoff <- 0.3
+  if(any(old_matchups$Team %in% c(team$`team name`, opponent$`team name`) & old_matchups$Team2 %in% c(team$`team name`, opponent$`team name`))) payoff <- payoff * 0.3
   #toc()
   payoff
 }
@@ -256,6 +256,6 @@ for_posting <- for_posting %>% filter(!is.na(Race)) %>% sample_frac(size = 1)
 for_admins <- for_posting %>% mutate(Team = str_replace(Team, "\\[(.*)\\].*","\\1"), Team2 = str_replace(Team2, "\\[(.*)\\].*","\\1"))
 
 for_admins$TD_diff = abs(for_admins$TV - for_admins$TV2)
-write_csv(for_admins, "week3_admins_eg.csv")
-write_csv(for_posting, "week3_posting_eg.csv")
+write_csv(for_admins, "week4_admins_eg.csv")
+write_csv(for_posting, "week4_posting_eg.csv")
 

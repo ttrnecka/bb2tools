@@ -109,8 +109,8 @@ r1_teams <- r1_teams %>%
 old_matches  <- read_csv("data/OI_S9_matches.csv")
 r1_matchups <- read_csv("data/r1_matches.csv")
 r2_matchups <- read_csv("data/r2_matches.csv")
-#r3_matchups <- read.csv("r3_matches.csv")
-oi_matchups <- bind_rows(r1_matchups,r2_matchups)
+r3_matchups <- read.csv("data/r3_matches.csv")
+oi_matchups <- bind_rows(r1_matchups,r2_matchups,r3_matchups)
 old_matchups <- bind_rows(old_matches, oi_matchups)
 
 
@@ -173,11 +173,11 @@ payoff <- function(team, opponent) {
   same_div <- (team$competition == opponent$competition) & (team$region == opponent$region)
   
   #Putting it together
-  fundamentals <- (0.4*TVdiff + 0.1*WRdiff + 0.2*Pdiff + 0.3*Ddiff)
+  fundamentals <- (0.8*TVdiff + 0.1*WRdiff + 0.2*Pdiff + 0.3*Ddiff)
   
   OIdiff <- 1 - abs(team$OI_ppg/3 - opponent$OI_ppg/3)
   
-  payoff <- (0.9*fundamentals) + (0.1 * OIdiff)
+  payoff <- (0.8*fundamentals) + (0.2 * OIdiff)
   #payoff <- (1*fundamentals)
   
   # check for previous OI match races
@@ -191,17 +191,17 @@ payoff <- function(team, opponent) {
   if(any(opponent$race.x %in% oi_races)) payoff <- payoff * 0.8
   #toc()
   
-  if (same_div) payoff <- 0.3
+  if (same_div) payoff <-  0.3
   
   #tic("finding old matchup")
-  if(any(old_matchups$Team %in% c(team$`team name`, opponent$`team name`) & old_matchups$Team2 %in% c(team$`team name`, opponent$`team name`))) payoff <- 0.3
+  if(any(old_matchups$Team %in% c(team$`team name`, opponent$`team name`) & old_matchups$Team2 %in% c(team$`team name`, opponent$`team name`))) payoff <- payoff * 0.1
   #toc()
   payoff
 }
 
 #make even numbers
 #remove one from lowest pool if necessary
-#r1_teams <- filter(r1_teams, !`blood bowl 2 name` %in% c("Al Bundy"))
+#r1_teams <- filter(r1_teams, !`blood bowl 2 name` %in% c("Bussunda"))
 
 payoff_mat <- matrix(data = 0, nrow = nrow(r1_teams), ncol = nrow(r1_teams), dimnames = list(r1_teams$`team name`,r1_teams$`team name`))
 
@@ -212,10 +212,11 @@ for (t in r1_teams$`team name`) {
 }
 
 payoff_mat[is.na(payoff_mat)] <- 0.3
+#payoff_mat <- payoff_mat + runif(nrow(payoff_mat)^2, c(-0.01,0.01))
 matches = roommate(utils = payoff_mat)
 
 while (is.null(matches)) {
-  matches <- roommate(utils = payoff_mat + runif(nrow(payoff_mat)^2, c(-0.01,0.01)))
+  matches <- roommate(utils = payoff_mat + runif(nrow(payoff_mat)^2, c(-0.001,0.001)))
 }
 
 for_posting <- data_frame()
@@ -257,5 +258,5 @@ for_posting <- for_posting %>% filter(!is.na(Race)) %>% sample_frac(size = 1)
 for_admins <- for_posting %>% mutate(Team = str_replace(Team, "\\[(.*)\\].*","\\1"), Team2 = str_replace(Team2, "\\[(.*)\\].*","\\1"))
 
 for_admins$TD_diff = abs(for_admins$TV - for_admins$TV2)
-write_csv(for_admins, "week3_admins_seasoned.csv")
-write_csv(for_posting, "week3_posting_seasoned.csv")
+write_csv(for_admins, "week4_admins_seasoned.csv")
+write_csv(for_posting, "week4_posting_seasoned.csv")
